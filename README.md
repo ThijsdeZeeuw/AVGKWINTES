@@ -1,42 +1,48 @@
 # Local AI Stack for Kwintes
 
-A comprehensive local AI stack deployment for Kwintes, featuring multiple AI models and services.
+A comprehensive local AI stack deployment for Kwintes, featuring multiple AI models, workflow automation, and secure document processing capabilities.
 
 # Created and maintained by Z4Y
 
 ## Features
 
-- **Multiple AI Models**: Support for various LLMs and embedding models
-- **Secure Infrastructure**: All services run locally with proper security measures
-- **Easy Setup**: Interactive setup process with automatic configuration
-- **Monitoring**: Built-in monitoring with Prometheus and Grafana
-- **Document Processing**: Support for text and vision-based document analysis
-- **Multi-language Support**: Handle documents in multiple languages
-- **API Access**: RESTful APIs for all services
-- **Web Interface**: User-friendly web interfaces for all components
+- **Local AI Processing**: All AI operations run locally on your infrastructure
+- **Multi-Model Support**: Access to various LLMs and embedding models
+- **Workflow Automation**: n8n and Flowise integration
+- **Secure Document Processing**: Built-in security features for sensitive data
+- **Monitoring & Analytics**: Prometheus and Grafana integration
+- **Search Capabilities**: Integrated SearXNG for efficient document search
+- **Multi-Language Support**: Advanced language processing capabilities
+- **API Integration**: RESTful API endpoints for all services
 
 ## Prerequisites
 
-### System Requirements
+### Server Requirements
 - Ubuntu 22.04 LTS or newer
 - Minimum 16GB RAM
 - 100GB+ storage
 - Domain name with DNS access
 
-### Required Software
-- Docker and Docker Compose
-- Python 3.8 or newer
-- Git
-- UFW (Uncomplicated Firewall)
+### Required Subdomains
+- n8n.kwintes.cloud
+- openwebui.kwintes.cloud
+- flowise.kwintes.cloud
+- supabase.kwintes.cloud
+- ollama.kwintes.cloud
+- searxng.kwintes.cloud
+- grafana.kwintes.cloud
+- prometheus.kwintes.cloud
+- whisper.kwintes.cloud
+- qdrant.kwintes.cloud
 
-## Installation Steps
+## Installation
 
-### 1. System Update and Basic Setup
+### 1. System Setup
 ```bash
 # Update system packages
 sudo apt update && sudo apt upgrade -y
 
-# Install basic requirements
+# Install required packages
 sudo apt install -y \
     apt-transport-https \
     ca-certificates \
@@ -45,24 +51,27 @@ sudo apt install -y \
     lsb-release \
     python3 \
     python3-pip \
+    python3-venv \
+    python3-full \
     git \
-    ufw \
-    nano \
-    htop \
-    net-tools \
-    wget \
-    unzip \
     build-essential \
-    python3-dev
+    software-properties-common \
+    nginx \
+    certbot \
+    python3-certbot-nginx
 ```
 
-### 2. Install Python Dependencies
+### 2. Python Environment Setup
 ```bash
-# Upgrade pip
-python3 -m pip install --upgrade pip
+# Create and activate virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
+# Upgrade pip in the virtual environment
+python -m pip install --upgrade pip
 
 # Install required Python packages
-pip3 install \
+pip install \
     docker \
     python-dotenv \
     pydantic \
@@ -73,19 +82,17 @@ pip3 install \
     python-multipart \
     python-jose[cryptography] \
     passlib[bcrypt] \
-    python-jose[cryptography] \
-    python-multipart \
     email-validator \
     pydantic-settings
 ```
 
-### 3. Install Docker
+### 3. Docker Installation
 ```bash
-# Remove old versions
+# Remove old Docker installations
 sudo apt remove -y docker docker-engine docker.io containerd runc
-sudo apt autoremove -y
 
 # Install Docker prerequisites
+sudo apt update
 sudo apt install -y \
     apt-transport-https \
     ca-certificates \
@@ -94,14 +101,12 @@ sudo apt install -y \
     lsb-release
 
 # Add Docker's official GPG key
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
-    sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
 
 # Add Docker repository
 echo \
-    "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
-    $(lsb_release -cs) stable" | \
-    sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+  "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
+  $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
 # Install Docker Engine
 sudo apt update
@@ -111,355 +116,172 @@ sudo apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
 sudo usermod -aG docker $USER
 ```
 
-### 4. Configure Firewall
+### 4. Repository Setup
 ```bash
-# Enable UFW
-sudo ufw enable
-
-# Allow SSH (important!)
-sudo ufw allow 22/tcp
-
-# Allow required ports
-sudo ufw allow 80/tcp
-sudo ufw allow 443/tcp
-sudo ufw allow 8000/tcp
-sudo ufw allow 3000/tcp
-sudo ufw allow 3001/tcp
-sudo ufw allow 11434/tcp
-sudo ufw allow 8080/tcp
-sudo ufw allow 9090/tcp
-sudo ufw allow 9000/tcp
-sudo ufw allow 6333/tcp
-
-# Verify firewall status
-sudo ufw status
-```
-
-### 5. Create Required Directories
-```bash
-# Create project directory
-mkdir -p ~/projects
-cd ~/projects
-
 # Clone repository
 git clone https://github.com/ThijsdeZeeuw/AVGKWINTES.git
 cd AVGKWINTES
 
 # Create data directories
 mkdir -p data/{n8n,flowise,webui,supabase,ollama,searxng,prometheus,grafana,whisper,qdrant}
-
-# Set proper permissions
-sudo chown -R $USER:$USER data/
-chmod -R 755 data/
+chmod -R 755 data
 ```
 
-### 6. Environment Setup
+### 5. Environment Configuration
 ```bash
-# Make scripts executable
-chmod +x generate_secrets.sh apply_secrets.sh
+# Make sure you're in the virtual environment
+source venv/bin/activate
 
 # Generate secrets
 ./generate_secrets.sh
 
-# Apply secrets to .env file
-./apply_secrets.sh
-
-# Run the interactive setup
-python3 start_services.py --interactive
+# Run interactive setup script
+python start_services.py --interactive
 ```
 
-### 7. Start Services
+### 6. Start Services
 ```bash
 # Start all services
 docker-compose up -d
 
-# Verify services are running
+# Check service status
 docker-compose ps
-
-# Check service logs if needed
-docker-compose logs -f [service_name]
 ```
-
-### 8. Verify Installation
-```bash
-# Check running containers
-docker ps
-
-# Verify services are accessible
-curl https://n8n.kwintes.cloud/healthz  # n8n
-curl https://qdrant.kwintes.cloud/healthz  # Qdrant
-curl https://prometheus.kwintes.cloud/-/healthy  # Prometheus
-```
-
-## Installed Components
-
-### 1. n8n Workflows
-- **Document Analysis Flow**
-  - Input: Document text/image
-  - Processing: Text extraction, sentiment analysis, entity recognition
-  - Output: Structured analysis report
-  - Models used: gemma3:12b, granite3-guardian:8b
-
-- **Client Report Generation**
-  - Input: Session notes, client history
-  - Processing: Text summarization, risk assessment
-  - Output: Formatted client report
-  - Models used: granite3-guardian:8b-instruct
-
-- **Multi-language Processing**
-  - Input: Multi-language documents
-  - Processing: Translation, sentiment analysis
-  - Output: Translated and analyzed content
-  - Models used: granite-embedding:278m
-
-### 2. Supabase Integration
-- **Database Tables**
-  - clients: Client information and history
-  - documents: Document storage and metadata
-  - reports: Generated reports and analysis
-  - users: System users and permissions
-
-- **API Endpoints**
-  - /api/v1/clients: Client management
-  - /api/v1/documents: Document processing
-  - /api/v1/reports: Report generation
-  - /api/v1/analysis: Document analysis
-
-### 3. Qdrant Vector Store
-- **Collections**
-  - documents: Document embeddings
-  - reports: Report embeddings
-  - clients: Client information embeddings
-
-- **Search Capabilities**
-  - Semantic search
-  - Similarity matching
-  - Hybrid search (keyword + semantic)
-
-### 4. Monitoring Stack
-- **Prometheus Metrics**
-  - Service health
-  - Resource usage
-  - API latency
-  - Error rates
-  - Model performance
-
-- **Grafana Dashboards**
-  - System overview
-  - Service metrics
-  - Model performance
-  - Error tracking
-  - Resource utilization
 
 ## Available AI Models
 
 ### Large Language Models (LLMs)
+1. gemma3:12b
+   - Source: Google
+   - Description: 12B parameter model with strong reasoning capabilities
 
-#### 1. gemma3:12b
-- **Source**: Google
-- **Size**: 12B parameters
-- **Use Cases**:
-  - General text understanding
-  - Document analysis
-  - Text generation
-  - Question answering
-- **Features**:
-  - Multilingual support
-  - Code understanding
-  - Reasoning capabilities
-  - Context window: 8K tokens
+2. granite3-guardian:8b
+   - Source: IBM
+   - Description: 8B parameter model with enhanced security features
 
-#### 2. granite3-guardian:8b
-- **Source**: IBM
-- **Size**: 8B parameters
-- **Use Cases**:
-  - Safe text generation
-  - Ethical AI interactions
-  - Content moderation
-  - Risk assessment
-- **Features**:
-  - Built-in safety filters
-  - Ethical guidelines
-  - Bias detection
-  - Context window: 4K tokens
+3. llama2:13b
+   - Source: Meta
+   - Description: 13B parameter model with strong general capabilities
 
-#### 3. granite3-guardian:8b-instruct
-- **Source**: IBM
-- **Size**: 8B parameters
-- **Use Cases**:
-  - Instruction following
-  - Task completion
-  - Process automation
-  - Workflow guidance
-- **Features**:
-  - Step-by-step reasoning
-  - Task decomposition
-  - Error handling
-  - Context window: 4K tokens
+4. llama2:7b
+   - Source: Meta
+   - Description: 7B parameter model optimized for efficiency
 
-#### 4. granite3-guardian:8b-q4_K_M
-- **Source**: IBM
-- **Size**: 8B parameters (quantized)
-- **Use Cases**:
-  - Efficient inference
-  - Resource-constrained environments
-  - Batch processing
-  - Real-time applications
-- **Features**:
-  - 4-bit quantization
-  - Reduced memory usage
-  - Faster inference
-  - Context window: 4K tokens
+5. mistral:7b
+   - Source: Mistral AI
+   - Description: 7B parameter model with excellent performance
 
-[Additional LLM models follow the same detailed format...]
+6. mistral:7b-instruct
+   - Source: Mistral AI
+   - Description: Instruction-tuned version of Mistral 7B
+
+7. mistral:7b-openorca
+   - Source: Mistral AI
+   - Description: OpenOrca fine-tuned version of Mistral 7B
+
+8. mistral:7b-solar
+   - Source: Mistral AI
+   - Description: Solar fine-tuned version of Mistral 7B
+
+9. mistral:7b-solar-instruct
+   - Source: Mistral AI
+   - Description: Instruction-tuned version of Mistral 7B Solar
+
+10. mistral:7b-solar-openorca
+    - Source: Mistral AI
+    - Description: OpenOrca fine-tuned version of Mistral 7B Solar
+
+11. mistral:7b-solar-openorca-instruct
+    - Source: Mistral AI
+    - Description: Instruction-tuned version of Mistral 7B Solar OpenOrca
+
+12. mistral:7b-solar-openorca-instruct-v2
+    - Source: Mistral AI
+    - Description: V2 version of the instruction-tuned Mistral 7B Solar OpenOrca
+
+13. mistral:7b-solar-openorca-instruct-v2.1
+    - Source: Mistral AI
+    - Description: V2.1 version of the instruction-tuned Mistral 7B Solar OpenOrca
 
 ### Embedding Models
+1. granite-embedding:278m
+   - Source: IBM
+   - Description: 278M parameter model optimized for text embeddings
 
-#### 1. granite-embedding:278m
-- **Source**: IBM
-- **Size**: 278M parameters
-- **Use Cases**:
-  - Text embedding
-  - Semantic search
-  - Document similarity
-  - Clustering
-- **Features**:
-  - Multilingual support
-  - Fast inference
-  - High accuracy
-  - Efficient storage
-
-#### 2. granite-embedding:278m-v2
-- **Source**: IBM
-- **Size**: 278M parameters
-- **Use Cases**:
-  - Enhanced text embedding
-  - Improved semantic search
-  - Better document similarity
-  - Advanced clustering
-- **Features**:
-  - Improved multilingual support
-  - Enhanced accuracy
-  - Better performance
-  - Optimized storage
+2. mistral-embedding:7b
+   - Source: Mistral AI
+   - Description: 7B parameter model for high-quality text embeddings
 
 ## Security Features
 
-1. **Local Deployment**: All processing happens on your infrastructure
-2. **Secure Infrastructure**:
+1. **Local Processing**
+   - All AI operations run on your infrastructure
+   - No data leaves your network
+   - Complete control over data flow
+
+2. **Secure Infrastructure**
    - HTTPS encryption for all services
-   - Firewall rules for port protection
+   - Firewall protection
    - Regular security updates
+   - Access control and authentication
+
+3. **Data Protection**
+   - Encrypted storage
    - Secure secret management
+   - Regular backups
+   - Audit logging
 
-3. **Access Control**:
+4. **Access Control**
    - Role-based access control
-   - JWT authentication
-   - API key management
-   - User management
-
-4. **Data Protection**:
-   - Local data storage
-   - Encrypted communication
-   - Secure backup system
-   - Data retention policies
-
-## Local AI Capabilities
-
-### Text Processing
-- Document analysis
-- Text classification
-- Sentiment analysis
-- Entity extraction
-- Multi-language support
-- Text summarization
-- Question answering
-
-### Vision Capabilities
-- Document image analysis
-- OCR processing
-- Visual question answering
-- Image classification
-- Object detection
-- Scene understanding
-
-## GGZ/FBW Client Support
-
-### Document Generation and Analysis
-- Automated report generation
-- Client history analysis
-- Risk assessment support
-- Treatment plan suggestions
-- Progress tracking
-- Compliance checking
-
-### Client Understanding and Support
-- Multi-language document processing
-- Cultural context awareness
-- Accessibility features
-- Privacy-focused processing
-- Secure data handling
-- Client-specific customization
-
-### Benefits for GGZ/FBW Organizations
-1. **Efficiency**:
-   - Automated document processing
-   - Quick report generation
-   - Streamlined workflows
-   - Reduced manual work
-
-2. **Quality**:
-   - Consistent documentation
-   - Standardized reports
-   - Error reduction
-   - Quality assurance
-
-3. **Compliance**:
-   - GDPR compliance
-   - Data protection
-   - Audit trails
-   - Security standards
-
-4. **Support**:
-   - Multi-language support
-   - Accessibility features
-   - Cultural sensitivity
-   - Client-specific needs
+   - Multi-factor authentication
+   - Session management
+   - IP whitelisting
 
 ## Maintenance
 
-### Regular Tasks
-1. Monitor system resources
-2. Check service logs
-3. Update Docker images
-4. Backup data
-5. Review security logs
-6. Update SSL certificates
-7. Clean up old logs
-8. Monitor disk space
-9. Check service health
-10. Update documentation
+### Regular Updates
+```bash
+# Update system packages
+sudo apt update && sudo apt upgrade -y
 
-### Backup Procedure
-1. Stop services
-2. Backup data directories
-3. Backup .env and secrets.txt
-4. Backup Docker volumes
-5. Verify backup integrity
-6. Document backup date
-7. Test restore procedure
+# Update Docker images
+docker-compose pull
+docker-compose up -d
+
+# Update Python dependencies (in virtual environment)
+source venv/bin/activate
+pip install --upgrade -r requirements.txt
+```
+
+### Backup Procedures
+```bash
+# Backup data directories
+tar -czf backup_$(date +%Y%m%d).tar.gz data/
+
+# Backup environment files
+cp .env .env.backup
+cp secrets.txt secrets.txt.backup
+```
+
+### Monitoring
+```bash
+# Check service logs
+docker-compose logs -f
+
+# Monitor system resources
+htop
+```
 
 ## Support
 
 For support or issues:
-1. Check service logs
-2. Review documentation
-3. Contact system administrator
-4. Check GitHub issues
-5. Review security advisories
+1. Check the logs: `docker-compose logs -f`
+2. Verify service status: `docker-compose ps`
+3. Check system resources: `htop`
+4. Review security logs: `journalctl -u docker`
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is proprietary and confidential. All rights reserved.
 
 # Created and maintained by Z4Y

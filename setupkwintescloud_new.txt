@@ -43,19 +43,41 @@ sudo apt install -y \
     python3 \
     python3-pip \
     python3-venv \
+    python3-full \
     git \
     build-essential \
     software-properties-common \
     nginx \
     certbot \
     python3-certbot-nginx
-
-# Install Python dependencies
-pip3 install --upgrade pip
-pip3 install pydantic pydantic-settings python-dotenv docker
 ```
 
-### 2. Docker Installation
+### 2. Python Environment Setup
+```bash
+# Create and activate virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
+# Upgrade pip in the virtual environment
+python -m pip install --upgrade pip
+
+# Install required Python packages in the virtual environment
+pip install \
+    docker \
+    python-dotenv \
+    pydantic \
+    requests \
+    aiohttp \
+    fastapi \
+    uvicorn \
+    python-multipart \
+    python-jose[cryptography] \
+    passlib[bcrypt] \
+    email-validator \
+    pydantic-settings
+```
+
+### 3. Docker Installation
 ```bash
 # Remove old Docker installations
 sudo apt remove -y docker docker-engine docker.io containerd runc
@@ -85,7 +107,7 @@ sudo apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
 sudo usermod -aG docker $USER
 ```
 
-### 3. Firewall Configuration
+### 4. Firewall Configuration
 ```bash
 # Configure UFW
 sudo ufw allow OpenSSH
@@ -102,7 +124,7 @@ sudo ufw allow 6333/tcp
 sudo ufw enable
 ```
 
-### 4. Repository Setup
+### 5. Repository Setup
 ```bash
 # Clone repository
 git clone https://github.com/ThijsdeZeeuw/AVGKWINTES.git
@@ -113,83 +135,85 @@ mkdir -p data/{n8n,flowise,webui,supabase,ollama,searxng,prometheus,grafana,whis
 chmod -R 755 data
 ```
 
-### 5. Environment Setup
+### 6. Environment Setup
 ```bash
-# Create and activate virtual environment
-python3 -m venv venv
+# Make sure you're in the virtual environment
 source venv/bin/activate
 
-# Install Python dependencies
-pip install -r requirements.txt
+# Generate secrets
+./generate_secrets.sh
 
 # Run interactive setup script
 python start_services.py --interactive
 ```
 
-### 6. Service Installation and Configuration
+### 7. Service Installation and Configuration
 
-#### 6.1 n8n Setup
+#### 7.1 n8n Setup
 ```bash
 # n8n will be automatically configured through docker-compose
 # Access at https://n8n.kwintes.cloud
 ```
 
-#### 6.2 Flowise Setup
+#### 7.2 Flowise Setup
 ```bash
 # Flowise will be automatically configured through docker-compose
 # Access at https://flowise.kwintes.cloud
 ```
 
-#### 6.3 WebUI Setup
+#### 7.3 WebUI Setup
 ```bash
 # WebUI will be automatically configured through docker-compose
 # Access at https://openwebui.kwintes.cloud
 ```
 
-#### 6.4 Supabase Setup
+#### 7.4 Supabase Setup
 ```bash
 # Supabase will be automatically configured through docker-compose
 # Access at https://supabase.kwintes.cloud
 ```
 
-#### 6.5 Ollama Setup
+#### 7.5 Ollama Setup
 ```bash
 # Ollama will be automatically configured through docker-compose
 # Access at https://ollama.kwintes.cloud
 ```
 
-#### 6.6 SearXNG Setup
+#### 7.6 SearXNG Setup
 ```bash
 # SearXNG will be automatically configured through docker-compose
 # Access at https://searxng.kwintes.cloud
 ```
 
-#### 6.7 Grafana Setup
+#### 7.7 Grafana Setup
 ```bash
 # Grafana will be automatically configured through docker-compose
 # Access at https://grafana.kwintes.cloud
 ```
 
-#### 6.8 Prometheus Setup
+#### 7.8 Prometheus Setup
 ```bash
 # Prometheus will be automatically configured through docker-compose
 # Access at https://prometheus.kwintes.cloud
 ```
 
-#### 6.9 Whisper Setup
+#### 7.9 Whisper Setup
 ```bash
 # Whisper will be automatically configured through docker-compose
 # Access at https://whisper.kwintes.cloud
 ```
 
-#### 6.10 Qdrant Setup
+#### 7.10 Qdrant Setup
 ```bash
 # Qdrant will be automatically configured through docker-compose
 # Access at https://qdrant.kwintes.cloud
 ```
 
-### 7. Starting Services
+### 8. Starting Services
 ```bash
+# Make sure you're in the virtual environment
+source venv/bin/activate
+
 # Start all services
 docker-compose up -d
 
@@ -197,7 +221,7 @@ docker-compose up -d
 docker-compose ps
 ```
 
-### 8. Verifying Installation
+### 9. Verifying Installation
 ```bash
 # Check service logs
 docker-compose logs -f
@@ -290,7 +314,8 @@ sudo apt update && sudo apt upgrade -y
 docker-compose pull
 docker-compose up -d
 
-# Update Python dependencies
+# Update Python dependencies (in virtual environment)
+source venv/bin/activate
 pip install --upgrade -r requirements.txt
 ```
 
