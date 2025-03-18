@@ -34,22 +34,40 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 class EnvironmentSettings(BaseSettings):
-    """Pydantic model for environment settings."""
+    """Pydantic model for environment settings"""
+    # Domain settings
+    domain_name: str
+    subdomain: str
+    letsencrypt_email: str
+
+    # Service ports
+    n8n_port: int = 8000
+    flowise_port: int = 3001
+    webui_port: int = 3000
+    supabase_port: int = 8000
+    ollama_port: int = 11434
+    searxng_port: int = 8080
+    prometheus_port: int = 9090
+    grafana_port: int = 3000
+    whisper_port: int = 9000
+    qdrant_port: int = 6333
+
+    # Required secrets
     N8N_ENCRYPTION_KEY: str
     N8N_USER_MANAGEMENT_JWT_SECRET: str
     POSTGRES_PASSWORD: str
     JWT_SECRET: str
     ANON_KEY: str
     SERVICE_ROLE_KEY: str
-    DASHBOARD_USERNAME: str = "admin"
     DASHBOARD_PASSWORD: str
-    POOLER_TENANT_ID: int = 1001
-    DOMAIN_NAME: str = "kwintes.cloud"
-    LETSENCRYPT_EMAIL: str = "tddezeeuw@gmail.com"
-    
+    SECRET_KEY_BASE: str
+    VAULT_ENC_KEY: str
+    LOGFLARE_API_KEY: str
+    GRAFANA_ADMIN_PASSWORD: str
+    FLOWISE_PASSWORD: str
+
     class Config:
         env_file = ".env"
-        case_sensitive = True
 
 def generate_random_string(length: int = 32) -> str:
     """Generate a random string of specified length."""
@@ -364,7 +382,7 @@ def start_services() -> bool:
         subprocess.run(['docker-compose', 'up', '-d'], check=True)
         logger.info("Services started successfully")
         return True
-        
+    
     except Exception as e:
         logger.error(f"Error starting services: {str(e)}")
         return False
@@ -375,7 +393,7 @@ def main():
     parser.add_argument('--subdomain', default='n8n', help='Subdomain')
     parser.add_argument('--email', default='tddezeeuw@gmail.com', help='Email for Let\'s Encrypt')
     args = parser.parse_args()
-    
+
     try:
         # Create settings object
         settings = EnvironmentSettings(
