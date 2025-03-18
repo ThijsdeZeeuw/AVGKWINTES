@@ -47,7 +47,7 @@ x-init-ollama: &init-ollama
   entrypoint: /bin/sh
   command:
     - "-c"
-    - "sleep 3; OLLAMA_HOST=ollama:11434 ollama pull gemma3:12b; OLLAMA_HOST=ollama:11434 ollama pull granite-embedding:278m; OLLAMA_HOST=ollama:11434 ollama pull granite3-guardian:8b; OLLAMA_HOST=ollama:11434 ollama pull llama2:13b; OLLAMA_HOST=ollama:11434 ollama pull llama2:7b; OLLAMA_HOST=ollama:11434 ollama pull mistral:7b; OLLAMA_HOST=ollama:11434 ollama pull mistral:7b-instruct; OLLAMA_HOST=ollama:11434 ollama pull mistral:7b-openorca; OLLAMA_HOST=ollama:11434 ollama pull mistral:7b-solar; OLLAMA_HOST=ollama:11434 ollama pull mistral:7b-solar-instruct; OLLAMA_HOST=ollama:11434 ollama pull mistral:7b-solar-openorca; OLLAMA_HOST=ollama:11434 ollama pull mistral:7b-solar-openorca-instruct; OLLAMA_HOST=ollama:11434 ollama pull mistral:7b-solar-openorca-instruct-v2; OLLAMA_HOST=ollama:11434 ollama pull mistral:7b-solar-openorca-instruct-v2.1; OLLAMA_HOST=ollama:11434 ollama pull mistral-embedding:7b"
+    - "sleep 3; OLLAMA_HOST=ollama:11434 ollama pull gemma3:12b; OLLAMA_HOST=ollama:11434 ollama pull granite-embedding:278m; OLLAMA_HOST=ollama:11434 ollama pull granite3-guardian:8b; OLLAMA_HOST=ollama:11434 ollama pull llama2:13b; OLLAMA_HOST=ollama:11434 ollama pull llama2:7b; OLLAMA_HOST=ollama:11434 ollama pull mistral:7b; OLLAMA_HOST=ollama:11434 ollama pull mistral-embedding:7b"
     # For a larger context length verison of the model, run these commands:
     # echo "FROM mistral:7b\n\nPARAMETER num_ctx 8096" > Modelfile
     # ollama create mistral:7b-8k -f ./Modelfile

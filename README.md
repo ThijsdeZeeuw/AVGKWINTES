@@ -169,39 +169,7 @@ docker-compose ps
 
 5. mistral:7b
    - Source: Mistral AI
-   - Description: 7B parameter model with excellent performance
-
-6. mistral:7b-instruct
-   - Source: Mistral AI
-   - Description: Instruction-tuned version of Mistral 7B
-
-7. mistral:7b-openorca
-   - Source: Mistral AI
-   - Description: OpenOrca fine-tuned version of Mistral 7B
-
-8. mistral:7b-solar
-   - Source: Mistral AI
-   - Description: Solar fine-tuned version of Mistral 7B
-
-9. mistral:7b-solar-instruct
-   - Source: Mistral AI
-   - Description: Instruction-tuned version of Mistral 7B Solar
-
-10. mistral:7b-solar-openorca
-    - Source: Mistral AI
-    - Description: OpenOrca fine-tuned version of Mistral 7B Solar
-
-11. mistral:7b-solar-openorca-instruct
-    - Source: Mistral AI
-    - Description: Instruction-tuned version of Mistral 7B Solar OpenOrca
-
-12. mistral:7b-solar-openorca-instruct-v2
-    - Source: Mistral AI
-    - Description: V2 version of the instruction-tuned Mistral 7B Solar OpenOrca
-
-13. mistral:7b-solar-openorca-instruct-v2.1
-    - Source: Mistral AI
-    - Description: V2.1 version of the instruction-tuned Mistral 7B Solar OpenOrca
+   - Description: 7B parameter model with excellent performance and instruction-following capabilities
 
 ### Embedding Models
 1. granite-embedding:278m
@@ -215,7 +183,7 @@ docker-compose ps
 ## Security Features
 
 1. **Local Processing**
-   - All AI operations run on your infrastructure
+   - All AI operations run locally on your infrastructure
    - No data leaves your network
    - Complete control over data flow
 

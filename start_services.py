@@ -123,7 +123,7 @@ def save_secrets(secrets_dict: Dict[str, str], secrets_file: str = 'secrets.txt'
         logger.error(f"Error saving secrets: {str(e)}")
         return False
 
-def setup_environment(interactive: bool = True) -> None:
+def setup_environment(settings: EnvironmentSettings, secrets_dict: Dict[str, str]):
     """Set up the environment with all necessary configurations."""
     try:
         # Create data directories
@@ -145,9 +145,7 @@ def setup_environment(interactive: bool = True) -> None:
             os.chmod(dir_path, 0o755)
         
         # Generate and save secrets
-        secrets_dict = generate_secrets()
-        if not save_secrets(secrets_dict):
-            raise Exception("Failed to save secrets")
+        save_secrets(secrets_dict)
         
         # Create .env file with all configurations
         env_content = """############
@@ -176,12 +174,12 @@ POOLER_TENANT_ID=1001
 # Caddy Config
 ############
 
-N8N_HOSTNAME=n8n.kwintes.cloud
-WEBUI_HOSTNAME=openwebui.kwintes.cloud
-FLOWISE_HOSTNAME=flowise.kwintes.cloud
-SUPABASE_HOSTNAME=supabase.kwintes.cloud
-OLLAMA_HOSTNAME=ollama.kwintes.cloud
-SEARXNG_HOSTNAME=searxng.kwintes.cloud
+N8N_HOSTNAME=n8n.{DOMAIN_NAME}
+WEBUI_HOSTNAME=openwebui.{DOMAIN_NAME}
+FLOWISE_HOSTNAME=flowise.{DOMAIN_NAME}
+SUPABASE_HOSTNAME=supabase.{DOMAIN_NAME}
+OLLAMA_HOSTNAME=ollama.{DOMAIN_NAME}
+SEARXNG_HOSTNAME=searxng.{DOMAIN_NAME}
 LETSENCRYPT_EMAIL={LETSENCRYPT_EMAIL}
 
 ############
@@ -219,11 +217,11 @@ PGRST_DB_SCHEMAS=public,storage
 # Auth Configuration
 ############
 
-SITE_URL=https://supabase.kwintes.cloud
+SITE_URL=https://supabase.{DOMAIN_NAME}
 ADDITIONAL_REDIRECT_URLS=
 JWT_EXPIRY=3600
 DISABLE_SIGNUP=false
-API_EXTERNAL_URL=https://supabase.kwintes.cloud
+API_EXTERNAL_URL=https://supabase.{DOMAIN_NAME}
 
 ## Mailer Config
 MAILER_URLPATHS_CONFIRMATION=/auth/v1/verify
@@ -234,7 +232,7 @@ MAILER_URLPATHS_EMAIL_CHANGE=/auth/v1/verify
 ## Email auth
 ENABLE_EMAIL_SIGNUP=false
 ENABLE_EMAIL_AUTOCONFIRM=false
-SMTP_ADMIN_EMAIL=admin@kwintes.cloud
+SMTP_ADMIN_EMAIL=admin@{DOMAIN_NAME}
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=
@@ -253,7 +251,7 @@ ENABLE_PHONE_AUTOCONFIRM=false
 STUDIO_DEFAULT_ORGANIZATION=Default Organization
 STUDIO_DEFAULT_PROJECT=Default Project
 STUDIO_PORT=3000
-SUPABASE_PUBLIC_URL=https://supabase.kwintes.cloud
+SUPABASE_PUBLIC_URL=https://supabase.{DOMAIN_NAME}
 IMGPROXY_ENABLE_WEBP_DETECTION=true
 OPENAI_API_KEY=
 
@@ -274,7 +272,7 @@ DOCKER_SOCKET_LOCATION=/var/run/docker.sock
 # Domain Settings
 ############
 
-DOMAIN_NAME=kwintes.cloud
+DOMAIN_NAME={DOMAIN_NAME}
 SUBDOMAIN=n8n
 
 ############
@@ -299,16 +297,16 @@ METRICS_INCLUDE_NODE_METRICS=true
 # Service Ports
 ############
 
-N8N_PORT=8000
-FLOWISE_PORT=3001
-WEBUI_PORT=3000
-SUPABASE_PORT=8000
-OLLAMA_PORT=11434
-SEARXNG_PORT=8080
-PROMETHEUS_PORT=9090
-GRAFANA_PORT=3000
-WHISPER_PORT=9000
-QDRANT_PORT=6333
+N8N_PORT={N8N_PORT}
+FLOWISE_PORT={FLOWISE_PORT}
+WEBUI_PORT={WEBUI_PORT}
+SUPABASE_PORT={SUPABASE_PORT}
+OLLAMA_PORT={OLLAMA_PORT}
+SEARXNG_PORT={SEARXNG_PORT}
+PROMETHEUS_PORT={PROMETHEUS_PORT}
+GRAFANA_PORT={GRAFANA_PORT}
+WHISPER_PORT={WHISPER_PORT}
+QDRANT_PORT={QDRANT_PORT}
 
 # Created and maintained by Z4Y
 """
@@ -328,9 +326,10 @@ def check_docker_installation() -> bool:
     try:
         client = docker.from_env()
         client.ping()
+        logger.info("Docker is installed and running")
         return True
     except Exception as e:
-        logger.error(f"Docker check failed: {str(e)}")
+        logger.error(f"Docker is not installed or not running: {str(e)}")
         return False
 
 def check_required_ports() -> bool:
@@ -342,57 +341,81 @@ def check_required_ports() -> bool:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.bind(('0.0.0.0', port))
             sock.close()
+            logger.info(f"Port {port} is available")
         except Exception as e:
             logger.error(f"Port {port} is not available: {str(e)}")
             return False
     return True
 
-def start_services() -> None:
+def start_services() -> bool:
     """Start all services using docker-compose."""
     try:
         # Check Docker installation
         if not check_docker_installation():
             logger.error("Docker is not running. Please start Docker and try again.")
-            return
+            return False
         
         # Check required ports
         if not check_required_ports():
             logger.error("Some required ports are not available. Please free up the ports and try again.")
-            return
+            return False
         
         # Start services using docker-compose
         subprocess.run(['docker-compose', 'up', '-d'], check=True)
         logger.info("Services started successfully")
+        return True
         
     except Exception as e:
         logger.error(f"Error starting services: {str(e)}")
-        raise
+        return False
 
 def main():
     parser = argparse.ArgumentParser(description='Start Local AI Stack Services')
-    parser.add_argument('--interactive', action='store_true', default=True,
-                      help='Run in interactive mode (default: True)')
+    parser.add_argument('--domain', default='kwintes.cloud', help='Domain name')
+    parser.add_argument('--subdomain', default='n8n', help='Subdomain')
+    parser.add_argument('--email', default='tddezeeuw@gmail.com', help='Email for Let\'s Encrypt')
     args = parser.parse_args()
     
     try:
-        # Set up environment
-        setup_environment(args.interactive)
+        # Create settings object
+        settings = EnvironmentSettings(
+            domain_name=args.domain,
+            subdomain=args.subdomain,
+            letsencrypt_email=args.email
+        )
+        
+        # Generate secrets
+        secrets_dict = generate_secrets()
+        
+        # Setup environment
+        setup_environment(settings, secrets_dict)
+        
+        # Check prerequisites
+        if not check_docker_installation():
+            logger.error("Docker is not properly installed or running")
+            sys.exit(1)
+            
+        if not check_required_ports():
+            logger.error("Required ports are not available")
+            sys.exit(1)
         
         # Start services
-        start_services()
-        
+        if not start_services():
+            logger.error("Failed to start services")
+            sys.exit(1)
+            
         logger.info("Setup completed successfully!")
         logger.info("You can access the services at:")
-        logger.info("- n8n: https://n8n.kwintes.cloud")
-        logger.info("- Flowise: https://flowise.kwintes.cloud")
-        logger.info("- WebUI: https://openwebui.kwintes.cloud")
-        logger.info("- Supabase: https://supabase.kwintes.cloud")
-        logger.info("- Ollama: https://ollama.kwintes.cloud")
-        logger.info("- SearXNG: https://searxng.kwintes.cloud")
-        logger.info("- Grafana: https://grafana.kwintes.cloud")
-        logger.info("- Prometheus: https://prometheus.kwintes.cloud")
-        logger.info("- Whisper: https://whisper.kwintes.cloud")
-        logger.info("- Qdrant: https://qdrant.kwintes.cloud")
+        logger.info("- n8n: https://n8n.{DOMAIN_NAME}")
+        logger.info("- Flowise: https://flowise.{DOMAIN_NAME}")
+        logger.info("- WebUI: https://openwebui.{DOMAIN_NAME}")
+        logger.info("- Supabase: https://supabase.{DOMAIN_NAME}")
+        logger.info("- Ollama: https://ollama.{DOMAIN_NAME}")
+        logger.info("- SearXNG: https://searxng.{DOMAIN_NAME}")
+        logger.info("- Grafana: https://grafana.{DOMAIN_NAME}")
+        logger.info("- Prometheus: https://prometheus.{DOMAIN_NAME}")
+        logger.info("- Whisper: https://whisper.{DOMAIN_NAME}")
+        logger.info("- Qdrant: https://qdrant.{DOMAIN_NAME}")
         
     except Exception as e:
         logger.error(f"Setup failed: {str(e)}")
