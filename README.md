@@ -1,255 +1,130 @@
-# Local AI Stack for Kwintes
+# Local AI Stack
 
-A comprehensive local AI stack deployment for Kwintes, featuring multiple AI models, workflow automation, and secure document processing capabilities.
-
-# Created and maintained by Z4Y
+A comprehensive local AI stack deployment that includes various AI services and tools.
 
 ## Features
 
-- **Local AI Processing**: All AI operations run locally on your infrastructure
-- **Multi-Model Support**: Access to various LLMs and embedding models
-- **Workflow Automation**: n8n and Flowise integration
-- **Secure Document Processing**: Built-in security features for sensitive data
-- **Monitoring & Analytics**: Prometheus and Grafana integration
-- **Search Capabilities**: Integrated SearXNG for efficient document search
-- **Multi-Language Support**: Advanced language processing capabilities
-- **API Integration**: RESTful API endpoints for all services
+- **AI Models**: Access to various AI models through Ollama
+- **Workflow Automation**: N8N for workflow automation
+- **AI Development**: Flowise for AI development
+- **Web Interface**: OpenWebUI for model interaction
+- **Database**: Supabase for data storage
+- **Search**: SearXNG for web search
+- **Monitoring**: Prometheus and Grafana for system monitoring
+- **Speech Processing**: Whisper for speech-to-text
+- **Vector Database**: Qdrant for vector storage
 
 ## Prerequisites
 
-### Server Requirements
-- Ubuntu 22.04 LTS or newer
-- Minimum 16GB RAM
-- 100GB+ storage
-- Domain name with DNS access
-
-### Required Subdomains
-- n8n.kwintes.cloud
-- openwebui.kwintes.cloud
-- flowise.kwintes.cloud
-- supabase.kwintes.cloud
-- ollama.kwintes.cloud
-- searxng.kwintes.cloud
-- grafana.kwintes.cloud
-- prometheus.kwintes.cloud
-- whisper.kwintes.cloud
-- qdrant.kwintes.cloud
+- Docker and Docker Compose
+- Python 3.8 or higher
+- pip3
+- virtualenv
+- Available ports: 8000, 3000, 3001, 11434, 8080, 9090, 9000, 6333
 
 ## Installation
 
-### 1. System Setup
+1. Clone the repository:
 ```bash
-# Update system packages
-sudo apt update && sudo apt upgrade -y
-
-# Install required packages
-sudo apt install -y \
-    apt-transport-https \
-    ca-certificates \
-    curl \
-    gnupg \
-    lsb-release \
-    python3 \
-    python3-pip \
-    python3-venv \
-    python3-full \
-    git \
-    build-essential \
-    software-properties-common \
-    nginx \
-    certbot \
-    python3-certbot-nginx
-```
-
-### 2. Python Environment Setup
-```bash
-# Create and activate virtual environment
-python3 -m venv venv
-source venv/bin/activate
-
-# Upgrade pip in the virtual environment
-python -m pip install --upgrade pip
-
-# Install required Python packages
-pip install \
-    docker \
-    python-dotenv \
-    pydantic \
-    requests \
-    aiohttp \
-    fastapi \
-    uvicorn \
-    python-multipart \
-    python-jose[cryptography] \
-    passlib[bcrypt] \
-    email-validator \
-    pydantic-settings
-```
-
-### 3. Docker Installation
-```bash
-# Remove old Docker installations
-sudo apt remove -y docker docker-engine docker.io containerd runc
-
-# Install Docker prerequisites
-sudo apt update
-sudo apt install -y \
-    apt-transport-https \
-    ca-certificates \
-    curl \
-    gnupg \
-    lsb-release
-
-# Add Docker's official GPG key
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-
-# Add Docker repository
-echo \
-  "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
-  $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-# Install Docker Engine
-sudo apt update
-sudo apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
-
-# Add user to docker group
-sudo usermod -aG docker $USER
-```
-
-### 4. Repository Setup
-```bash
-# Clone repository
 git clone https://github.com/ThijsdeZeeuw/AVGKWINTES.git
 cd AVGKWINTES
-
-# Create data directories
-mkdir -p data/{n8n,flowise,webui,supabase,ollama,searxng,prometheus,grafana,whisper,qdrant}
-chmod -R 755 data
 ```
 
-### 5. Environment Configuration
+2. Make the setup script executable:
 ```bash
-# Make sure you're in the virtual environment
-source venv/bin/activate
-
-# Generate secrets
-./generate_secrets.sh
-
-# Run interactive setup script
-python start_services.py --interactive
+chmod +x setupkwintes.sh
 ```
 
-### 6. Start Services
+3. Run the setup script:
 ```bash
-# Start all services
-docker-compose up -d
-
-# Check service status
-docker-compose ps
+./setupkwintes.sh
 ```
+
+The script will:
+- Check for prerequisites
+- Set up a Python virtual environment
+- Install required Python packages
+- Create necessary data directories
+- Generate secrets and configuration
+- Start all services
 
 ## Available AI Models
 
-### Large Language Models (LLMs)
+The following AI models are available through Ollama:
+
 1. gemma3:12b
    - Source: Google
-   - Description: 12B parameter model with strong reasoning capabilities
+   - Description: 12B parameter model with excellent performance
 
-2. granite3-guardian:8b
+2. granite-embedding:278m
    - Source: IBM
-   - Description: 8B parameter model with enhanced security features
+   - Description: Efficient embedding model for text similarity
 
-3. llama2:13b
+3. granite3-guardian:8b
+   - Source: IBM
+   - Description: 8B parameter model with security focus
+
+4. llama2:13b
    - Source: Meta
-   - Description: 13B parameter model with strong general capabilities
+   - Description: 13B parameter model with strong performance
 
-4. llama2:7b
+5. llama2:7b
    - Source: Meta
-   - Description: 7B parameter model optimized for efficiency
+   - Description: 7B parameter model with good performance
 
-5. mistral:7b
+6. mistral:7b
    - Source: Mistral AI
    - Description: 7B parameter model with excellent performance and instruction-following capabilities
 
-### Embedding Models
-1. granite-embedding:278m
-   - Source: IBM
-   - Description: 278M parameter model optimized for text embeddings
-
-2. mistral-embedding:7b
+7. mistral-embedding:7b
    - Source: Mistral AI
-   - Description: 7B parameter model for high-quality text embeddings
+   - Description: Embedding model for text similarity
+
+## Service Access
+
+After installation, you can access the services at:
+
+- n8n: https://n8n.kwintes.cloud
+- Flowise: https://flowise.kwintes.cloud
+- WebUI: https://openwebui.kwintes.cloud
+- Supabase: https://supabase.kwintes.cloud
+- Ollama: https://ollama.kwintes.cloud
+- SearXNG: https://searxng.kwintes.cloud
+- Grafana: https://grafana.kwintes.cloud
+- Prometheus: https://prometheus.kwintes.cloud
+- Whisper: https://whisper.kwintes.cloud
+- Qdrant: https://qdrant.kwintes.cloud
 
 ## Security Features
 
-1. **Local Processing**
-   - All AI operations run locally on your infrastructure
-   - No data leaves your network
-   - Complete control over data flow
-
-2. **Secure Infrastructure**
-   - HTTPS encryption for all services
-   - Firewall protection
-   - Regular security updates
-   - Access control and authentication
-
-3. **Data Protection**
-   - Encrypted storage
-   - Secure secret management
-   - Regular backups
-   - Audit logging
-
-4. **Access Control**
-   - Role-based access control
-   - Multi-factor authentication
-   - Session management
-   - IP whitelisting
+- HTTPS encryption for all services
+- Secure secret management
+- Isolated containers
+- Regular security updates
+- Firewall configuration
+- Access control and authentication
 
 ## Maintenance
 
-### Regular Updates
-```bash
-# Update system packages
-sudo apt update && sudo apt upgrade -y
+To update the services:
 
-# Update Docker images
+```bash
 docker-compose pull
 docker-compose up -d
-
-# Update Python dependencies (in virtual environment)
-source venv/bin/activate
-pip install --upgrade -r requirements.txt
 ```
 
-### Backup Procedures
-```bash
-# Backup data directories
-tar -czf backup_$(date +%Y%m%d).tar.gz data/
+To view logs:
 
-# Backup environment files
-cp .env .env.backup
-cp secrets.txt secrets.txt.backup
-```
-
-### Monitoring
 ```bash
-# Check service logs
 docker-compose logs -f
+```
 
-# Monitor system resources
-htop
+To stop services:
+
+```bash
+docker-compose down
 ```
 
 ## Support
 
-For support or issues:
-1. Check the logs: `docker-compose logs -f`
-2. Verify service status: `docker-compose ps`
-3. Check system resources: `htop`
-4. Review security logs: `journalctl -u docker`
-
-## License
-
-This project is proprietary and confidential. All rights reserved.
-
-# Created and maintained by Z4Y
+For issues and support, please create an issue in the GitHub repository.

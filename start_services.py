@@ -76,20 +76,21 @@ def generate_random_string(length: int = 32) -> str:
 
 def generate_secrets() -> Dict[str, str]:
     """Generate all required secrets."""
-    return {
+    secrets = {
         'N8N_ENCRYPTION_KEY': generate_random_string(32),
         'N8N_USER_MANAGEMENT_JWT_SECRET': generate_random_string(32),
-        'POSTGRES_PASSWORD': generate_random_string(16),
+        'POSTGRES_PASSWORD': generate_random_string(32),
         'JWT_SECRET': generate_random_string(32),
         'ANON_KEY': generate_random_string(32),
         'SERVICE_ROLE_KEY': generate_random_string(32),
-        'DASHBOARD_PASSWORD': generate_random_string(16),
-        'SECRET_KEY_BASE': generate_random_string(32),
+        'DASHBOARD_PASSWORD': generate_random_string(32),
+        'SECRET_KEY_BASE': generate_random_string(64),
         'VAULT_ENC_KEY': generate_random_string(32),
         'LOGFLARE_API_KEY': generate_random_string(32),
-        'GRAFANA_ADMIN_PASSWORD': generate_random_string(16),
-        'FLOWISE_PASSWORD': generate_random_string(16)
+        'GRAFANA_ADMIN_PASSWORD': generate_random_string(32),
+        'FLOWISE_PASSWORD': generate_random_string(32)
     }
+    return secrets
 
 def save_secrets(secrets_dict: Dict[str, str], secrets_file: str = 'secrets.txt'):
     """Save generated secrets to a file."""
@@ -141,8 +142,8 @@ def save_secrets(secrets_dict: Dict[str, str], secrets_file: str = 'secrets.txt'
         logger.error(f"Error saving secrets: {str(e)}")
         return False
 
-def setup_environment(settings: EnvironmentSettings, secrets_dict: Dict[str, str]):
-    """Set up the environment with all necessary configurations."""
+def setup_environment(settings: EnvironmentSettings, secrets_dict: Dict[str, str]) -> bool:
+    """Set up the environment with required configurations."""
     try:
         # Create data directories
         data_dirs = [
@@ -162,182 +163,61 @@ def setup_environment(settings: EnvironmentSettings, secrets_dict: Dict[str, str
             Path(dir_path).mkdir(parents=True, exist_ok=True)
             os.chmod(dir_path, 0o755)
         
-        # Generate and save secrets
-        save_secrets(secrets_dict)
-        
-        # Create .env file with all configurations
-        env_content = """############
-# [required] 
-# n8n credentials
-############
+        # Create .env file with all required settings
+        env_content = f"""# Caddy Config
+DOMAIN_NAME={settings.domain_name}
+LETSENCRYPT_EMAIL={settings.letsencrypt_email}
 
-N8N_ENCRYPTION_KEY={N8N_ENCRYPTION_KEY}
-N8N_USER_MANAGEMENT_JWT_SECRET={N8N_USER_MANAGEMENT_JWT_SECRET}
-
-############
-# [required] 
-# Supabase Secrets
-############
-
-POSTGRES_PASSWORD={POSTGRES_PASSWORD}
-JWT_SECRET={JWT_SECRET}
-ANON_KEY={ANON_KEY}
-SERVICE_ROLE_KEY={SERVICE_ROLE_KEY}
-DASHBOARD_USERNAME=admin
-DASHBOARD_PASSWORD={DASHBOARD_PASSWORD}
-POOLER_TENANT_ID=1001
-
-############
-# [required for prod] 
-# Caddy Config
-############
-
-N8N_HOSTNAME=n8n.{DOMAIN_NAME}
-WEBUI_HOSTNAME=openwebui.{DOMAIN_NAME}
-FLOWISE_HOSTNAME=flowise.{DOMAIN_NAME}
-SUPABASE_HOSTNAME=supabase.{DOMAIN_NAME}
-OLLAMA_HOSTNAME=ollama.{DOMAIN_NAME}
-SEARXNG_HOSTNAME=searxng.{DOMAIN_NAME}
-LETSENCRYPT_EMAIL={LETSENCRYPT_EMAIL}
-
-############
 # Database Configuration
-############
-
-POSTGRES_HOST=db
+POSTGRES_PASSWORD={secrets_dict['POSTGRES_PASSWORD']}
+POSTGRES_USER=postgres
 POSTGRES_DB=postgres
-POSTGRES_PORT=5432
 
-############
 # Supavisor Configuration
-############
+SUPAVISOR_DB_URL=postgresql://postgres:{secrets_dict['POSTGRES_PASSWORD']}@db:5432/postgres
+SUPAVISOR_JWT_SECRET={secrets_dict['JWT_SECRET']}
+SUPAVISOR_ANON_KEY={secrets_dict['ANON_KEY']}
+SUPAVISOR_SERVICE_ROLE_KEY={secrets_dict['SERVICE_ROLE_KEY']}
 
-POOLER_PROXY_PORT_TRANSACTION=5432
-POOLER_DEFAULT_POOL_SIZE=15
-POOLER_MAX_CLIENT_CONN=100
-SECRET_KEY_BASE={SECRET_KEY_BASE}
-VAULT_ENC_KEY={VAULT_ENC_KEY}
-
-############
 # API Proxy Configuration
-############
+API_PROXY_SECRET={secrets_dict['SECRET_KEY_BASE']}
+API_PROXY_VAULT_KEY={secrets_dict['VAULT_ENC_KEY']}
 
-KONG_HTTP_PORT=8000
-KONG_HTTPS_PORT=8443
+# Logging Configuration
+LOGFLARE_API_KEY={secrets_dict['LOGFLARE_API_KEY']}
 
-############
-# API Configuration
-############
+# Monitoring Configuration
+GRAFANA_ADMIN_PASSWORD={secrets_dict['GRAFANA_ADMIN_PASSWORD']}
 
-PGRST_DB_SCHEMAS=public,storage
+# N8N Configuration
+N8N_ENCRYPTION_KEY={secrets_dict['N8N_ENCRYPTION_KEY']}
+N8N_USER_MANAGEMENT_JWT_SECRET={secrets_dict['N8N_USER_MANAGEMENT_JWT_SECRET']}
 
-############
-# Auth Configuration
-############
-
-SITE_URL=https://supabase.{DOMAIN_NAME}
-ADDITIONAL_REDIRECT_URLS=
-JWT_EXPIRY=3600
-DISABLE_SIGNUP=false
-API_EXTERNAL_URL=https://supabase.{DOMAIN_NAME}
-
-## Mailer Config
-MAILER_URLPATHS_CONFIRMATION=/auth/v1/verify
-MAILER_URLPATHS_INVITE=/auth/v1/verify
-MAILER_URLPATHS_RECOVERY=/auth/v1/verify
-MAILER_URLPATHS_EMAIL_CHANGE=/auth/v1/verify
-
-## Email auth
-ENABLE_EMAIL_SIGNUP=false
-ENABLE_EMAIL_AUTOCONFIRM=false
-SMTP_ADMIN_EMAIL=admin@{DOMAIN_NAME}
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=
-SMTP_PASS=
-SMTP_SENDER_NAME=Kwintes
-ENABLE_ANONYMOUS_USERS=false
-
-## Phone auth
-ENABLE_PHONE_SIGNUP=false
-ENABLE_PHONE_AUTOCONFIRM=false
-
-############
-# Studio Configuration
-############
-
-STUDIO_DEFAULT_ORGANIZATION=Default Organization
-STUDIO_DEFAULT_PROJECT=Default Project
-STUDIO_PORT=3000
-SUPABASE_PUBLIC_URL=https://supabase.{DOMAIN_NAME}
-IMGPROXY_ENABLE_WEBP_DETECTION=true
-OPENAI_API_KEY=
-
-############
-# Functions Configuration
-############
-
-FUNCTIONS_VERIFY_JWT=true
-
-############
-# Logs Configuration
-############
-
-LOGFLARE_API_KEY={LOGFLARE_API_KEY}
-DOCKER_SOCKET_LOCATION=/var/run/docker.sock
-
-############
-# Domain Settings
-############
-
-DOMAIN_NAME={DOMAIN_NAME}
-SUBDOMAIN=n8n
-
-############
-# Grafana Configuration
-############
-
-GRAFANA_ADMIN_USER=admin
-GRAFANA_ADMIN_PASSWORD={GRAFANA_ADMIN_PASSWORD}
-DATA_FOLDER=./data
-
-############
 # Flowise Configuration
-############
+FLOWISE_PASSWORD={secrets_dict['FLOWISE_PASSWORD']}
 
-FLOWISE_USERNAME=admin
-FLOWISE_PASSWORD={FLOWISE_PASSWORD}
-ENABLE_METRICS=true
-METRICS_PROVIDER=prometheus
-METRICS_INCLUDE_NODE_METRICS=true
-
-############
 # Service Ports
-############
-
-N8N_PORT={N8N_PORT}
-FLOWISE_PORT={FLOWISE_PORT}
-WEBUI_PORT={WEBUI_PORT}
-SUPABASE_PORT={SUPABASE_PORT}
-OLLAMA_PORT={OLLAMA_PORT}
-SEARXNG_PORT={SEARXNG_PORT}
-PROMETHEUS_PORT={PROMETHEUS_PORT}
-GRAFANA_PORT={GRAFANA_PORT}
-WHISPER_PORT={WHISPER_PORT}
-QDRANT_PORT={QDRANT_PORT}
-
-# Created and maintained by Z4Y
+N8N_PORT={settings.n8n_port}
+FLOWISE_PORT={settings.flowise_port}
+WEBUI_PORT={settings.webui_port}
+SUPABASE_PORT={settings.supabase_port}
+OLLAMA_PORT={settings.ollama_port}
+SEARXNG_PORT={settings.searxng_port}
+PROMETHEUS_PORT={settings.prometheus_port}
+GRAFANA_PORT={settings.grafana_port}
+WHISPER_PORT={settings.whisper_port}
+QDRANT_PORT={settings.qdrant_port}
 """
         
-        # Write the .env file with the generated secrets
-        with open('.env', 'w') as f:
-            f.write(env_content.format(**secrets_dict))
+        with open(".env", "w") as f:
+            f.write(env_content)
         
-        logger.info("Environment setup completed successfully")
+        logging.info("Environment configuration completed successfully")
+        return True
         
     except Exception as e:
-        logger.error(f"Error during environment setup: {str(e)}")
-        raise
+        logging.error(f"Failed to set up environment: {str(e)}")
+        return False
 
 def check_docker_installation() -> bool:
     """Check if Docker is installed and running."""
@@ -365,7 +245,7 @@ def check_required_ports() -> bool:
             return False
     return True
 
-def start_services() -> bool:
+def start_services(settings: EnvironmentSettings) -> bool:
     """Start all services using docker-compose."""
     try:
         # Check Docker installation
@@ -388,56 +268,41 @@ def start_services() -> bool:
         return False
 
 def main():
-    parser = argparse.ArgumentParser(description='Start Local AI Stack Services')
-    parser.add_argument('--domain', default='kwintes.cloud', help='Domain name')
-    parser.add_argument('--subdomain', default='n8n', help='Subdomain')
-    parser.add_argument('--email', default='tddezeeuw@gmail.com', help='Email for Let\'s Encrypt')
+    """Main entry point for the script."""
+    parser = argparse.ArgumentParser(description='Start local AI services')
+    parser.add_argument('--domain', required=True, help='Domain name for the services')
+    parser.add_argument('--subdomain', required=True, help='Subdomain for the services')
+    parser.add_argument('--email', required=True, help='Email for Let\'s Encrypt')
     args = parser.parse_args()
 
+    # Generate secrets
+    secrets_dict = generate_secrets()
+    
+    # Create settings object
+    settings = EnvironmentSettings(
+        domain_name=args.domain,
+        subdomain=args.subdomain,
+        letsencrypt_email=args.email,
+        **secrets_dict  # Add all secrets to settings
+    )
+
     try:
-        # Create settings object
-        settings = EnvironmentSettings(
-            domain_name=args.domain,
-            subdomain=args.subdomain,
-            letsencrypt_email=args.email
-        )
-        
-        # Generate secrets
-        secrets_dict = generate_secrets()
-        
-        # Setup environment
-        setup_environment(settings, secrets_dict)
-        
-        # Check prerequisites
-        if not check_docker_installation():
-            logger.error("Docker is not properly installed or running")
-            sys.exit(1)
-            
-        if not check_required_ports():
-            logger.error("Required ports are not available")
-            sys.exit(1)
-        
+        # Set up environment
+        if not setup_environment(settings, secrets_dict):
+            logging.error("Environment setup failed")
+            return False
+
         # Start services
-        if not start_services():
-            logger.error("Failed to start services")
-            sys.exit(1)
-            
-        logger.info("Setup completed successfully!")
-        logger.info("You can access the services at:")
-        logger.info("- n8n: https://n8n.{DOMAIN_NAME}")
-        logger.info("- Flowise: https://flowise.{DOMAIN_NAME}")
-        logger.info("- WebUI: https://openwebui.{DOMAIN_NAME}")
-        logger.info("- Supabase: https://supabase.{DOMAIN_NAME}")
-        logger.info("- Ollama: https://ollama.{DOMAIN_NAME}")
-        logger.info("- SearXNG: https://searxng.{DOMAIN_NAME}")
-        logger.info("- Grafana: https://grafana.{DOMAIN_NAME}")
-        logger.info("- Prometheus: https://prometheus.{DOMAIN_NAME}")
-        logger.info("- Whisper: https://whisper.{DOMAIN_NAME}")
-        logger.info("- Qdrant: https://qdrant.{DOMAIN_NAME}")
-        
+        if not start_services(settings):
+            logging.error("Failed to start services")
+            return False
+
+        logging.info("All services started successfully")
+        return True
+
     except Exception as e:
-        logger.error(f"Setup failed: {str(e)}")
-        sys.exit(1)
+        logging.error(f"Setup failed: {str(e)}")
+        return False
 
 if __name__ == "__main__":
     main()
