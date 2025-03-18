@@ -54,8 +54,8 @@ sudo ufw reload
 
 4. Clone the repository:
 ```bash
-git clone https://github.com/coleam00/local-ai-packaged.git
-cd local-ai-packaged
+git clone https://github.com/ThijsdeZeeuw/AVGKWINTES.git
+cd AVGKWINTES
 ```
 
 5. Run the interactive setup:
