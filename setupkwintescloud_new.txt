@@ -1,23 +1,19 @@
-# Local AI Stack Setup Guide for Kwintes
-# Created and maintained by Z4Y
+# Kwintes Cloud Setup Instructions
 
 ## Prerequisites
 
-### Server Requirements
-- Ubuntu 22.04 LTS or newer
-- Minimum 16GB RAM
-- 100GB+ storage
-- Domain name with DNS access
+1. Ubuntu 24.04 LTS or newer
+2. Minimum 16GB RAM
+3. 100GB+ storage
+4. Domain name (kwintes.cloud) with DNS access
+5. Root or sudo access
 
-### Server Access Information
-- IP Address: [Your Server IP]
-- Username: [Your Username]
-- Password: [Your Password]
+## Required Subdomains
 
-### Required Subdomains
+Make sure the following subdomains are configured in your DNS:
 - n8n.kwintes.cloud
-- openwebui.kwintes.cloud
 - flowise.kwintes.cloud
+- openwebui.kwintes.cloud
 - supabase.kwintes.cloud
 - ollama.kwintes.cloud
 - searxng.kwintes.cloud
@@ -26,15 +22,12 @@
 - whisper.kwintes.cloud
 - qdrant.kwintes.cloud
 
-## Server Setup Steps
+## Installation Steps
 
 ### 1. System Update and Package Installation
 ```bash
-# Update system packages
-sudo apt update && sudo apt upgrade -y
-
-# Install required packages
-sudo apt install -y \
+# Update system and install required packages
+sudo apt update && sudo apt upgrade -y && sudo apt install -y \
     apt-transport-https \
     ca-certificates \
     curl \
@@ -49,309 +42,211 @@ sudo apt install -y \
     software-properties-common \
     nginx \
     certbot \
-    python3-certbot-nginx
+    python3-certbot-nginx \
+    docker-compose
 ```
 
-### 2. Python Environment Setup
+### 2. Install Docker
 ```bash
-# Create and activate virtual environment
-python3 -m venv venv
-source venv/bin/activate
-
-# Upgrade pip in the virtual environment
-python -m pip install --upgrade pip
-
-# Install required Python packages in the virtual environment
-pip install \
-    docker \
-    python-dotenv \
-    pydantic \
-    requests \
-    aiohttp \
-    fastapi \
-    uvicorn \
-    python-multipart \
-    python-jose[cryptography] \
-    passlib[bcrypt] \
-    email-validator \
-    pydantic-settings
+# Remove old Docker installations and install new ones
+sudo apt remove -y docker docker-engine docker.io containerd runc && \
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg && \
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null && \
+sudo apt update && \
+sudo apt install -y docker-ce docker-ce-cli containerd.io && \
+sudo usermod -aG docker $USER && \
+newgrp docker
 ```
 
-### 3. Docker Installation
+### 3. Configure Firewall
 ```bash
-# Remove old Docker installations
-sudo apt remove -y docker docker-engine docker.io containerd runc
-
-# Install Docker prerequisites
-sudo apt update
-sudo apt install -y \
-    apt-transport-https \
-    ca-certificates \
-    curl \
-    gnupg \
-    lsb-release
-
-# Add Docker's official GPG key
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-
-# Add Docker repository
-echo \
-  "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
-  $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-# Install Docker Engine
-sudo apt update
-sudo apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
-
-# Add user to docker group
-sudo usermod -aG docker $USER
+# Configure firewall rules
+sudo ufw allow OpenSSH && \
+sudo ufw allow 80/tcp && \
+sudo ufw allow 443/tcp && \
+sudo ufw allow 8000/tcp && \
+sudo ufw allow 3000/tcp && \
+sudo ufw allow 3001/tcp && \
+sudo ufw allow 11434/tcp && \
+sudo ufw allow 8080/tcp && \
+sudo ufw allow 9090/tcp && \
+sudo ufw allow 9000/tcp && \
+sudo ufw allow 6333/tcp && \
+sudo ufw --force enable
 ```
 
-### 4. Firewall Configuration
+### 4. Clone Repository and Setup Environment
 ```bash
-# Configure UFW
-sudo ufw allow OpenSSH
-sudo ufw allow 80/tcp
-sudo ufw allow 443/tcp
-sudo ufw allow 8000/tcp
-sudo ufw allow 3000/tcp
-sudo ufw allow 3001/tcp
-sudo ufw allow 11434/tcp
-sudo ufw allow 8080/tcp
-sudo ufw allow 9090/tcp
-sudo ufw allow 9000/tcp
-sudo ufw allow 6333/tcp
-sudo ufw enable
+# Clone repository and create directories
+git clone https://github.com/ThijsdeZeeuw/AVGKWINTES.git && \
+cd AVGKWINTES && \
+mkdir -p data/{n8n,flowise,webui,supabase,ollama,searxng,prometheus,grafana,whisper,qdrant} && \
+chmod -R 755 data && \
+python3 -m venv venv && \
+source venv/bin/activate && \
+pip install docker python-dotenv pydantic requests aiohttp fastapi uvicorn python-multipart python-jose[cryptography] passlib[bcrypt] email-validator pydantic-settings && \
+# Pre-pull required Docker images
+docker pull flowiseai/flowise:latest && \
+docker pull ghcr.io/open-webui/open-webui:main && \
+docker pull n8nio/n8n:latest && \
+docker pull prom/prometheus:latest && \
+docker pull grafana/grafana:latest && \
+docker pull onerahmet/openai-whisper-asr-webservice:latest && \
+# Set required environment variables for n8n
+export N8N_HOSTNAME=n8n.kwintes.cloud && \
+export N8N_PROTOCOL=https && \
+export N8N_EDITOR_BASE_URL=https://n8n.kwintes.cloud && \
+# Start services
+python start_services.py --domain kwintes.cloud --subdomain n8n --email tddezeeuw@gmail.com
 ```
 
-### 5. Repository Setup
+### 5. Verify Installation
 ```bash
-# Clone repository
-git clone https://github.com/ThijsdeZeeuw/AVGKWINTES.git
-cd AVGKWINTES
-
-# Create data directories
-mkdir -p data/{n8n,flowise,webui,supabase,ollama,searxng,prometheus,grafana,whisper,qdrant}
-chmod -R 755 data
-```
-
-### 6. Environment Setup
-```bash
-# Make sure you're in the virtual environment
-source venv/bin/activate
-
-# Generate secrets
-./generate_secrets.sh
-
-# Run interactive setup script
-python start_services.py --interactive
-```
-
-### 7. Service Installation and Configuration
-
-#### 7.1 n8n Setup
-```bash
-# n8n will be automatically configured through docker-compose
-# Access at https://n8n.kwintes.cloud
-```
-
-#### 7.2 Flowise Setup
-```bash
-# Flowise will be automatically configured through docker-compose
-# Access at https://flowise.kwintes.cloud
-```
-
-#### 7.3 WebUI Setup
-```bash
-# WebUI will be automatically configured through docker-compose
-# Access at https://openwebui.kwintes.cloud
-```
-
-#### 7.4 Supabase Setup
-```bash
-# Supabase will be automatically configured through docker-compose
-# Access at https://supabase.kwintes.cloud
-```
-
-#### 7.5 Ollama Setup
-```bash
-# Ollama will be automatically configured through docker-compose
-# Access at https://ollama.kwintes.cloud
-```
-
-#### 7.6 SearXNG Setup
-```bash
-# SearXNG will be automatically configured through docker-compose
-# Access at https://searxng.kwintes.cloud
-```
-
-#### 7.7 Grafana Setup
-```bash
-# Grafana will be automatically configured through docker-compose
-# Access at https://grafana.kwintes.cloud
-```
-
-#### 7.8 Prometheus Setup
-```bash
-# Prometheus will be automatically configured through docker-compose
-# Access at https://prometheus.kwintes.cloud
-```
-
-#### 7.9 Whisper Setup
-```bash
-# Whisper will be automatically configured through docker-compose
-# Access at https://whisper.kwintes.cloud
-```
-
-#### 7.10 Qdrant Setup
-```bash
-# Qdrant will be automatically configured through docker-compose
-# Access at https://qdrant.kwintes.cloud
-```
-
-### 8. Starting Services
-```bash
-# Make sure you're in the virtual environment
-source venv/bin/activate
-
-# Start all services
-docker-compose up -d
-
-# Check service status
-docker-compose ps
-```
-
-### 9. Verifying Installation
-```bash
-# Check service logs
+# Check service status and logs
+docker-compose ps && \
 docker-compose logs -f
-
-# Check service health
-curl -I https://n8n.kwintes.cloud
-curl -I https://flowise.kwintes.cloud
-curl -I https://openwebui.kwintes.cloud
-curl -I https://supabase.kwintes.cloud
-curl -I https://ollama.kwintes.cloud
-curl -I https://searxng.kwintes.cloud
-curl -I https://grafana.kwintes.cloud
-curl -I https://prometheus.kwintes.cloud
-curl -I https://whisper.kwintes.cloud
-curl -I https://qdrant.kwintes.cloud
 ```
+
+### 6. Troubleshoot Common Issues
+
+If you encounter the Whisper image error, run:
+```bash
+# Stop services
+docker-compose down
+
+# Pull the correct Whisper image
+docker pull onerahmet/openai-whisper-asr-webservice:latest
+
+# Start services again
+docker-compose up -d
+```
+
+### 7. Whisper Configuration
+
+The Whisper service is configured with the following settings:
+- Port: 9000
+- Model: base
+- Engine: openai_whisper
+- Cache: Persisted in data/whisper/cache
+
+You can access the Whisper API documentation at:
+- Swagger UI: https://whisper.kwintes.cloud/docs
+- ReDoc: https://whisper.kwintes.cloud/redoc
+
+Key features available:
+- Multiple ASR engines (OpenAI Whisper, Faster Whisper, WhisperX)
+- Multiple output formats (text, JSON, VTT, SRT, TSV)
+- Word-level timestamps
+- Voice activity detection (VAD) filtering
+- Speaker diarization (with WhisperX)
+- FFmpeg integration for broad audio/video format support
+- GPU acceleration support (if available)
+
+## Available Services
+
+After installation, you can access the following services:
+
+- n8n: https://n8n.kwintes.cloud
+- Flowise: https://flowise.kwintes.cloud
+- WebUI: https://openwebui.kwintes.cloud
+- Supabase: https://supabase.kwintes.cloud
+- Ollama: https://ollama.kwintes.cloud
+- SearXNG: https://searxng.kwintes.cloud
+- Grafana: https://grafana.kwintes.cloud
+- Prometheus: https://prometheus.kwintes.cloud
+- Whisper: https://whisper.kwintes.cloud
+- Qdrant: https://qdrant.kwintes.cloud
 
 ## Available AI Models
 
-### Large Language Models (LLMs)
+The following AI models are available through Ollama:
+
 1. gemma3:12b
    - Source: Google
-   - Description: 12B parameter model with strong reasoning capabilities
+   - Description: 12B parameter model with excellent performance
 
-2. granite3-guardian:8b
+2. granite-embedding:278m
    - Source: IBM
-   - Description: 8B parameter model with enhanced security features
+   - Description: Efficient embedding model for text similarity
 
-3. llama2:13b
-   - Source: Meta
-   - Description: 13B parameter model with strong general capabilities
-
-4. llama2:7b
-   - Source: Meta
-   - Description: 7B parameter model optimized for efficiency
-
-5. mistral:7b
-   - Source: Mistral AI
-   - Description: 7B parameter model with excellent performance
-
-6. mistral:7b-instruct
-   - Source: Mistral AI
-   - Description: Instruction-tuned version of Mistral 7B
-
-7. mistral:7b-openorca
-   - Source: Mistral AI
-   - Description: OpenOrca fine-tuned version of Mistral 7B
-
-8. mistral:7b-solar
-   - Source: Mistral AI
-   - Description: Solar fine-tuned version of Mistral 7B
-
-9. mistral:7b-solar-instruct
-   - Source: Mistral AI
-   - Description: Instruction-tuned version of Mistral 7B Solar
-
-10. mistral:7b-solar-openorca
-    - Source: Mistral AI
-    - Description: OpenOrca fine-tuned version of Mistral 7B Solar
-
-11. mistral:7b-solar-openorca-instruct
-    - Source: Mistral AI
-    - Description: Instruction-tuned version of Mistral 7B Solar OpenOrca
-
-12. mistral:7b-solar-openorca-instruct-v2
-    - Source: Mistral AI
-    - Description: V2 version of the instruction-tuned Mistral 7B Solar OpenOrca
-
-13. mistral:7b-solar-openorca-instruct-v2.1
-    - Source: Mistral AI
-    - Description: V2.1 version of the instruction-tuned Mistral 7B Solar OpenOrca
-
-### Embedding Models
-1. granite-embedding:278m
+3. granite3-guardian:8b
    - Source: IBM
-   - Description: 278M parameter model optimized for text embeddings
+   - Description: 8B parameter model with security focus
 
-2. mistral-embedding:7b
+4. llama2:13b
+   - Source: Meta
+   - Description: 13B parameter model with strong performance
+
+5. llama2:7b
+   - Source: Meta
+   - Description: 7B parameter model with good performance
+
+6. mistral:7b
    - Source: Mistral AI
-   - Description: 7B parameter model for high-quality text embeddings
+   - Description: 7B parameter model with excellent performance and instruction-following capabilities
+
+7. mistral-embedding:7b
+   - Source: Mistral AI
+   - Description: Embedding model for text similarity
 
 ## Maintenance
 
-### Regular Updates
+### Update Services
 ```bash
-# Update system packages
-sudo apt update && sudo apt upgrade -y
-
-# Update Docker images
-docker-compose pull
-docker-compose up -d
-
-# Update Python dependencies (in virtual environment)
-source venv/bin/activate
-pip install --upgrade -r requirements.txt
+# Update and restart services
+docker-compose pull && docker-compose up -d
 ```
 
-### Backup Procedures
+### View Logs
 ```bash
-# Backup data directories
-tar -czf backup_$(date +%Y%m%d).tar.gz data/
-
-# Backup environment files
-cp .env .env.backup
-cp secrets.txt secrets.txt.backup
-```
-
-### Monitoring
-```bash
-# Check service logs
+# View all logs
 docker-compose logs -f
 
-# Monitor system resources
+# View specific service logs
+docker-compose logs -f [service_name]
+```
+
+### Backup
+```bash
+# Backup data and environment
+tar -czf backup_$(date +%Y%m%d).tar.gz data/ && cp .env .env.backup
+```
+
+### Troubleshooting
+
+1. Check service status:
+```bash
+docker-compose ps
+```
+
+2. Check service logs:
+```bash
+docker-compose logs -f [service_name]
+```
+
+3. Restart specific service:
+```bash
+docker-compose restart [service_name]
+```
+
+4. Check system resources:
+```bash
 htop
 ```
 
 ## Security Notes
 
-1. All services are configured with HTTPS
-2. Firewall rules are in place
-3. Regular security updates are applied
-4. Secrets are stored securely
-5. Access is restricted to authorized users
+1. All services are protected by HTTPS
+2. Firewall is configured to allow only necessary ports
+3. Docker containers are isolated
+4. Regular security updates are applied
+5. Access control and authentication are enabled for all services
 
 ## Support
 
-For support or issues:
-1. Check the logs: `docker-compose logs -f`
-2. Verify service status: `docker-compose ps`
-3. Check system resources: `htop`
-4. Review security logs: `journalctl -u docker`
-
-# Created and maintained by Z4Y 
+For issues and support:
+1. Check the logs using `docker-compose logs -f`
+2. Verify service status using `docker-compose ps`
+3. Check system resources using `htop`
+4. Review security logs using `journalctl -u docker`
+5. Create an issue in the GitHub repository 
