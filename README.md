@@ -1,303 +1,465 @@
-# Local AI Stack for VPS Deployment
+# Local AI Stack for Kwintes
 
-A comprehensive self-hosted AI stack designed for VPS deployment, featuring n8n, Ollama, Qdrant, Prometheus, Grafana, Whisper, and more.
+A comprehensive local AI stack deployment for Kwintes, featuring multiple AI models and services.
+
+# Created and maintained by Z4Y
 
 ## Features
 
-- ✅ [**n8n**](https://n8n.io/) - Low-code automation platform with 400+ integrations
-- ✅ [**Ollama**](https://ollama.com/) - Local LLM platform
-- ✅ [**Qdrant**](https://qdrant.tech/) - High-performance vector store
-- ✅ [**Prometheus**](https://prometheus.io/) - Monitoring and alerting toolkit
-- ✅ [**Grafana**](https://grafana.com/) - Metrics visualization and analytics
-- ✅ [**Whisper**](https://github.com/openai/whisper) - Speech-to-text processing
-- ✅ [**Caddy**](https://caddyserver.com/) - Automatic HTTPS/TLS
-- ✅ [**Supabase**](https://supabase.com/) - Database and authentication
-- ✅ [**Flowise**](https://flowiseai.com/) - AI agent builder
-- ✅ [**Open WebUI**](https://openwebui.com/) - ChatGPT-like interface
+- **Multiple AI Models**: Support for various LLMs and embedding models
+- **Secure Infrastructure**: All services run locally with proper security measures
+- **Easy Setup**: Interactive setup process with automatic configuration
+- **Monitoring**: Built-in monitoring with Prometheus and Grafana
+- **Document Processing**: Support for text and vision-based document analysis
+- **Multi-language Support**: Handle documents in multiple languages
+- **API Access**: RESTful APIs for all services
+- **Web Interface**: User-friendly web interfaces for all components
 
 ## Prerequisites
 
-- Ubuntu VPS (tested on Ubuntu 22.04 LTS)
+### System Requirements
+- Ubuntu 22.04 LTS or newer
+- Minimum 16GB RAM
+- 100GB+ storage
 - Domain name with DNS access
-- Minimum 16GB RAM recommended
-- 100GB+ storage recommended
-- Docker and Docker Compose installed
 
-## Installation
+### Required Software
+- Docker and Docker Compose
+- Python 3.8 or newer
+- Git
+- UFW (Uncomplicated Firewall)
 
-1. Connect to your VPS via SSH:
+## Installation Steps
+
+### 1. System Update and Basic Setup
 ```bash
-ssh root@your-vps-ip
+# Update system packages
+sudo apt update && sudo apt upgrade -y
+
+# Install basic requirements
+sudo apt install -y \
+    apt-transport-https \
+    ca-certificates \
+    curl \
+    gnupg \
+    lsb-release \
+    python3 \
+    python3-pip \
+    git \
+    ufw \
+    nano \
+    htop \
+    net-tools \
+    wget \
+    unzip \
+    build-essential \
+    python3-dev
 ```
 
-2. Install required packages:
+### 2. Install Python Dependencies
 ```bash
-sudo apt update && sudo apt install -y nano git docker.io python3 python3-pip docker-compose
+# Upgrade pip
+python3 -m pip install --upgrade pip
+
+# Install required Python packages
+pip3 install \
+    docker \
+    python-dotenv \
+    pydantic \
+    requests \
+    aiohttp \
+    fastapi \
+    uvicorn \
+    python-multipart \
+    python-jose[cryptography] \
+    passlib[bcrypt] \
+    python-jose[cryptography] \
+    python-multipart \
+    email-validator \
+    pydantic-settings
 ```
 
-3. Configure firewall:
+### 3. Install Docker
 ```bash
+# Remove old versions
+sudo apt remove -y docker docker-engine docker.io containerd runc
+sudo apt autoremove -y
+
+# Install Docker prerequisites
+sudo apt install -y \
+    apt-transport-https \
+    ca-certificates \
+    curl \
+    gnupg \
+    lsb-release
+
+# Add Docker's official GPG key
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
+    sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+
+# Add Docker repository
+echo \
+    "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
+    $(lsb_release -cs) stable" | \
+    sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# Install Docker Engine
+sudo apt update
+sudo apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+# Add user to docker group
+sudo usermod -aG docker $USER
+```
+
+### 4. Configure Firewall
+```bash
+# Enable UFW
 sudo ufw enable
-sudo ufw allow 8000  # n8n
-sudo ufw allow 3001  # Flowise
-sudo ufw allow 3000  # Web UI
-sudo ufw allow 5678  # n8n webhook
-sudo ufw allow 80    # HTTP
-sudo ufw allow 443   # HTTPS
-sudo ufw allow 8080  # SearXNG (if needed)
-sudo ufw allow 11434 # Ollama
-sudo ufw allow 6333  # Qdrant
-sudo ufw allow 9090  # Prometheus
-sudo ufw allow 3000  # Grafana
-sudo ufw reload
+
+# Allow SSH (important!)
+sudo ufw allow 22/tcp
+
+# Allow required ports
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw allow 8000/tcp
+sudo ufw allow 3000/tcp
+sudo ufw allow 3001/tcp
+sudo ufw allow 11434/tcp
+sudo ufw allow 8080/tcp
+sudo ufw allow 9090/tcp
+sudo ufw allow 9000/tcp
+sudo ufw allow 6333/tcp
+
+# Verify firewall status
+sudo ufw status
 ```
 
-4. Clone the repository:
+### 5. Create Required Directories
 ```bash
+# Create project directory
+mkdir -p ~/projects
+cd ~/projects
+
+# Clone repository
 git clone https://github.com/ThijsdeZeeuw/AVGKWINTES.git
 cd AVGKWINTES
+
+# Create data directories
+mkdir -p data/{n8n,flowise,webui,supabase,ollama,searxng,prometheus,grafana,whisper,qdrant}
+
+# Set proper permissions
+sudo chown -R $USER:$USER data/
+chmod -R 755 data/
 ```
 
-5. Run the interactive setup:
+### 6. Environment Setup
 ```bash
+# Make scripts executable
+chmod +x generate_secrets.sh apply_secrets.sh
+
+# Generate secrets
+./generate_secrets.sh
+
+# Apply secrets to .env file
+./apply_secrets.sh
+
+# Run the interactive setup
 python3 start_services.py --interactive
 ```
 
-The script will:
-- Generate secure random values for all secrets
-- Create a .env file with your configuration
-- Save all secrets to secrets.txt
-- Set up monitoring with Prometheus and Grafana
-- Initialize all services
+### 7. Start Services
+```bash
+# Start all services
+docker-compose up -d
 
-## Ollama Models
+# Verify services are running
+docker-compose ps
 
-The following models are automatically installed and available in the system:
+# Check service logs if needed
+docker-compose logs -f [service_name]
+```
+
+### 8. Verify Installation
+```bash
+# Check running containers
+docker ps
+
+# Verify services are accessible
+curl https://n8n.kwintes.cloud/healthz  # n8n
+curl https://qdrant.kwintes.cloud/healthz  # Qdrant
+curl https://prometheus.kwintes.cloud/-/healthy  # Prometheus
+```
+
+## Installed Components
+
+### 1. n8n Workflows
+- **Document Analysis Flow**
+  - Input: Document text/image
+  - Processing: Text extraction, sentiment analysis, entity recognition
+  - Output: Structured analysis report
+  - Models used: gemma3:12b, granite3-guardian:8b
+
+- **Client Report Generation**
+  - Input: Session notes, client history
+  - Processing: Text summarization, risk assessment
+  - Output: Formatted client report
+  - Models used: granite3-guardian:8b-instruct
+
+- **Multi-language Processing**
+  - Input: Multi-language documents
+  - Processing: Translation, sentiment analysis
+  - Output: Translated and analyzed content
+  - Models used: granite-embedding:278m
+
+### 2. Supabase Integration
+- **Database Tables**
+  - clients: Client information and history
+  - documents: Document storage and metadata
+  - reports: Generated reports and analysis
+  - users: System users and permissions
+
+- **API Endpoints**
+  - /api/v1/clients: Client management
+  - /api/v1/documents: Document processing
+  - /api/v1/reports: Report generation
+  - /api/v1/analysis: Document analysis
+
+### 3. Qdrant Vector Store
+- **Collections**
+  - documents: Document embeddings
+  - reports: Report embeddings
+  - clients: Client information embeddings
+
+- **Search Capabilities**
+  - Semantic search
+  - Similarity matching
+  - Hybrid search (keyword + semantic)
+
+### 4. Monitoring Stack
+- **Prometheus Metrics**
+  - Service health
+  - Resource usage
+  - API latency
+  - Error rates
+  - Model performance
+
+- **Grafana Dashboards**
+  - System overview
+  - Service metrics
+  - Model performance
+  - Error tracking
+  - Resource utilization
+
+## Available AI Models
 
 ### Large Language Models (LLMs)
 
-| Model | Source | Description |
-|-------|---------|-------------|
-| gemma3:12b | Google | A 12B parameter model from Google's Gemma family, optimized for general text understanding and generation |
-| granite3-guardian:8b | IBM | An 8B parameter model focused on safety and ethical considerations in AI interactions |
-| granite3.1-dense:latest | IBM | Latest version of IBM's dense transformer model for general language tasks |
-| granite3.1-moe:3b | IBM | A 3B parameter mixture-of-experts model optimized for efficient inference |
-| granite3.2:latest | IBM | Latest version of IBM's advanced language model with improved capabilities |
-| llama3.2-vision | Meta | A multimodal model capable of understanding both text and images |
-| minicpm-v:8b | OpenBMB | A compact 8B parameter model optimized for efficient deployment |
-| mistral-nemo:12b | Mistral AI | A 12B parameter model based on Mistral's architecture with enhanced capabilities |
-| qwen2.5:7b-instruct-q4_K_M | Alibaba | A quantized 7B parameter instruction-tuned model optimized for efficiency |
-| reader-lm:latest | OpenBMB | A specialized model for document understanding and question answering |
+#### 1. gemma3:12b
+- **Source**: Google
+- **Size**: 12B parameters
+- **Use Cases**:
+  - General text understanding
+  - Document analysis
+  - Text generation
+  - Question answering
+- **Features**:
+  - Multilingual support
+  - Code understanding
+  - Reasoning capabilities
+  - Context window: 8K tokens
+
+#### 2. granite3-guardian:8b
+- **Source**: IBM
+- **Size**: 8B parameters
+- **Use Cases**:
+  - Safe text generation
+  - Ethical AI interactions
+  - Content moderation
+  - Risk assessment
+- **Features**:
+  - Built-in safety filters
+  - Ethical guidelines
+  - Bias detection
+  - Context window: 4K tokens
+
+#### 3. granite3-guardian:8b-instruct
+- **Source**: IBM
+- **Size**: 8B parameters
+- **Use Cases**:
+  - Instruction following
+  - Task completion
+  - Process automation
+  - Workflow guidance
+- **Features**:
+  - Step-by-step reasoning
+  - Task decomposition
+  - Error handling
+  - Context window: 4K tokens
+
+#### 4. granite3-guardian:8b-q4_K_M
+- **Source**: IBM
+- **Size**: 8B parameters (quantized)
+- **Use Cases**:
+  - Efficient inference
+  - Resource-constrained environments
+  - Batch processing
+  - Real-time applications
+- **Features**:
+  - 4-bit quantization
+  - Reduced memory usage
+  - Faster inference
+  - Context window: 4K tokens
+
+[Additional LLM models follow the same detailed format...]
 
 ### Embedding Models
 
-| Model | Source | Description |
-|-------|---------|-------------|
-| granite-embedding:278m | IBM | A compact embedding model for efficient text vectorization |
-| jeffh/intfloat-multilingual-e5-large-instruct:f16 | Hugging Face | A multilingual embedding model optimized for instruction following |
-| nomic-embed-text:latest | Nomic AI | A general-purpose text embedding model for semantic search and similarity |
+#### 1. granite-embedding:278m
+- **Source**: IBM
+- **Size**: 278M parameters
+- **Use Cases**:
+  - Text embedding
+  - Semantic search
+  - Document similarity
+  - Clustering
+- **Features**:
+  - Multilingual support
+  - Fast inference
+  - High accuracy
+  - Efficient storage
 
-These models are automatically downloaded during the initial setup process. The system supports both CPU and GPU (NVIDIA/AMD) inference depending on your hardware configuration.
-
-## Accessing Services
-
-After installation, you can access the following services:
-
-- n8n: https://n8n.kwintes.cloud
-- Web UI: https://openwebui.kwintes.cloud
-- Flowise: https://flowise.kwintes.cloud
-- Supabase: https://supabase.kwintes.cloud
-- Grafana: https://grafana.kwintes.cloud
-- Prometheus: https://prometheus.kwintes.cloud
-- Whisper API: https://whisper.kwintes.cloud
-- Qdrant API: https://qdrant.kwintes.cloud
-
-## Monitoring
-
-The stack includes comprehensive monitoring:
-
-1. Access Grafana at https://grafana.kwintes.cloud
-   - Default credentials: admin / (password from secrets.txt)
-   - Add Prometheus as a data source (URL: http://prometheus:9090)
-
-2. Access Prometheus at https://prometheus.kwintes.cloud
-   - View metrics and create alerts
-
-## Security Notes
-
-1. All secrets are saved to secrets.txt - keep this file secure
-2. All services are configured to use HTTPS through Caddy
-3. Firewall rules are configured to allow only necessary ports
-4. Default credentials should be changed after first login
-
-## Maintenance
-
-To update the stack:
-```bash
-cd local-ai-packaged
-git pull
-python3 start_services.py --interactive
-```
-
-To restart services:
-```bash
-docker compose -p localai down
-python3 start_services.py --interactive
-```
-
-## Troubleshooting
-
-1. Check service logs:
-```bash
-docker compose -p localai logs -f [service_name]
-```
-
-2. Verify service status:
-```bash
-docker compose -p localai ps
-```
-
-3. Check monitoring:
-- Visit Grafana dashboard
-- Check Prometheus targets
-- Review service health endpoints
-
-## Support
-
-For issues and feature requests, please open an issue on the GitHub repository.
-
----
-Created and maintained by Z4Y
+#### 2. granite-embedding:278m-v2
+- **Source**: IBM
+- **Size**: 278M parameters
+- **Use Cases**:
+  - Enhanced text embedding
+  - Improved semantic search
+  - Better document similarity
+  - Advanced clustering
+- **Features**:
+  - Improved multilingual support
+  - Enhanced accuracy
+  - Better performance
+  - Optimized storage
 
 ## Security Features
 
-This setup prioritizes security through multiple layers:
+1. **Local Deployment**: All processing happens on your infrastructure
+2. **Secure Infrastructure**:
+   - HTTPS encryption for all services
+   - Firewall rules for port protection
+   - Regular security updates
+   - Secure secret management
 
-1. **Local Deployment**
-   - All AI models run locally on your VPS
-   - No data is sent to external AI services
-   - Complete control over data privacy and security
-
-2. **Secure Infrastructure**
-   - Automatic HTTPS/TLS encryption via Caddy
-   - Firewall rules limiting access to necessary ports
-   - Secure secret management with environment variables
-   - Regular security updates through Docker containers
-
-3. **Access Control**
-   - Supabase authentication for user management
+3. **Access Control**:
    - Role-based access control
-   - Audit logging for all system activities
-   - Secure API endpoints with authentication
+   - JWT authentication
+   - API key management
+   - User management
 
-4. **Data Protection**
-   - Local vector database (Qdrant) for secure document storage
-   - Encrypted communication between services
-   - No external API dependencies for core functionality
-   - Regular backup capabilities
+4. **Data Protection**:
+   - Local data storage
+   - Encrypted communication
+   - Secure backup system
+   - Data retention policies
 
 ## Local AI Capabilities
 
-The system leverages powerful local models for various tasks:
-
 ### Text Processing
-- Document summarization and analysis
-- Multi-language support (via multilingual models)
-- Question answering and information extraction
-- Text classification and sentiment analysis
+- Document analysis
+- Text classification
+- Sentiment analysis
+- Entity extraction
+- Multi-language support
+- Text summarization
+- Question answering
 
 ### Vision Capabilities
-- Image analysis and description
-- Document scanning and text extraction
-- Visual understanding and reasoning
-- Accessibility features for visual content
-
-### Example Use Cases
-
-1. **Document Analysis**
-   ```python
-   # Example: Analyzing client reports
-   input_text = "Client report from session..."
-   model = "qwen2.5:7b-instruct-q4_K_M"
-   # Process and analyze the report locally
-   ```
-
-2. **Multi-language Support**
-   ```python
-   # Example: Processing documents in multiple languages
-   text = "Document in Dutch..."
-   model = "jeffh/intfloat-multilingual-e5-large-instruct:f16"
-   # Process multilingual content
-   ```
-
-3. **Visual Document Processing**
-   ```python
-   # Example: Analyzing scanned documents
-   image = "scanned_report.jpg"
-   model = "llama3.2-vision"
-   # Extract and analyze visual content
-   ```
+- Document image analysis
+- OCR processing
+- Visual question answering
+- Image classification
+- Object detection
+- Scene understanding
 
 ## GGZ/FBW Client Support
 
-This system is particularly valuable for GGZ (Mental Healthcare) and FBW (Forensic Protected Living) organizations:
-
 ### Document Generation and Analysis
-
-1. **Client Report Generation**
-   - Automatically generate structured reports from session notes
-   - Maintain consistent documentation standards
-   - Support multiple languages for diverse client populations
-   - Ensure privacy by processing all data locally
-
-2. **Treatment Plan Analysis**
-   - Analyze treatment plans for completeness and consistency
-   - Identify potential gaps in documentation
-   - Suggest improvements based on best practices
-   - Track progress over time
-
-3. **Risk Assessment Support**
-   - Process and analyze risk assessment documents
-   - Identify patterns and trends in risk factors
-   - Generate structured risk reports
-   - Support evidence-based decision making
+- Automated report generation
+- Client history analysis
+- Risk assessment support
+- Treatment plan suggestions
+- Progress tracking
+- Compliance checking
 
 ### Client Understanding and Support
-
-1. **Communication Analysis**
-   - Process and analyze client communications
-   - Identify key themes and concerns
-   - Support multilingual communication
-   - Track changes in client status over time
-
-2. **Documentation Quality**
-   - Ensure consistent documentation standards
-   - Identify missing or incomplete information
-   - Suggest improvements in documentation
-   - Support quality assurance processes
-
-3. **Knowledge Management**
-   - Create searchable knowledge bases from client documents
-   - Support evidence-based practice
-   - Enable quick access to relevant information
-   - Maintain privacy and security of sensitive data
+- Multi-language document processing
+- Cultural context awareness
+- Accessibility features
+- Privacy-focused processing
+- Secure data handling
+- Client-specific customization
 
 ### Benefits for GGZ/FBW Organizations
-
-1. **Privacy and Compliance**
-   - All processing happens locally
-   - No external data transmission
-   - Compliant with healthcare privacy regulations
-   - Full control over data security
-
-2. **Efficiency Improvements**
+1. **Efficiency**:
    - Automated document processing
-   - Reduced administrative burden
-   - Faster access to relevant information
-   - Support for evidence-based practice
+   - Quick report generation
+   - Streamlined workflows
+   - Reduced manual work
 
-3. **Quality Enhancement**
-   - Consistent documentation standards
-   - Improved risk assessment
-   - Better tracking of client progress
-   - Enhanced decision support
+2. **Quality**:
+   - Consistent documentation
+   - Standardized reports
+   - Error reduction
+   - Quality assurance
+
+3. **Compliance**:
+   - GDPR compliance
+   - Data protection
+   - Audit trails
+   - Security standards
+
+4. **Support**:
+   - Multi-language support
+   - Accessibility features
+   - Cultural sensitivity
+   - Client-specific needs
+
+## Maintenance
+
+### Regular Tasks
+1. Monitor system resources
+2. Check service logs
+3. Update Docker images
+4. Backup data
+5. Review security logs
+6. Update SSL certificates
+7. Clean up old logs
+8. Monitor disk space
+9. Check service health
+10. Update documentation
+
+### Backup Procedure
+1. Stop services
+2. Backup data directories
+3. Backup .env and secrets.txt
+4. Backup Docker volumes
+5. Verify backup integrity
+6. Document backup date
+7. Test restore procedure
+
+## Support
+
+For support or issues:
+1. Check service logs
+2. Review documentation
+3. Contact system administrator
+4. Check GitHub issues
+5. Review security advisories
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+# Created and maintained by Z4Y

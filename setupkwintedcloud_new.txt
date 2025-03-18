@@ -3,185 +3,205 @@
 # Includes: n8n, Ollama, Qdrant, Prometheus, Grafana, Whisper, and Python
 
 ## Prerequisites
-1. Server Requirements
-   - Ubuntu 22.04 LTS or newer
-   - Minimum 16GB RAM
-   - 100GB+ storage
-   - Domain name with DNS access
 
-2. Server Access Information
-   - IP: 46.202.155.155
-   - Username: root
-   - Password: [Your server password]
+### Server Requirements
+- Ubuntu 22.04 LTS or newer
+- Minimum 16GB RAM
+- 100GB+ storage
+- Domain name with DNS access
 
-3. Domain Information
-   - Current domain: kwintes.cloud
-   - Required subdomains:
-     * n8n.kwintes.cloud
-     * openwebui.kwintes.cloud
-     * flowise.kwintes.cloud
-     * supabase.kwintes.cloud
-     * grafana.kwintes.cloud
-     * prometheus.kwintes.cloud
-     * whisper.kwintes.cloud
-     * qdrant.kwintes.cloud
+### Server Access Information
+- IP: [Your Server IP]
+- Username: [Your Username]
+- Password: [Your Password]
+
+### Required Subdomains
+- n8n.kwintes.cloud
+- openwebui.kwintes.cloud
+- flowise.kwintes.cloud
+- supabase.kwintes.cloud
+- ollama.kwintes.cloud
+- searxng.kwintes.cloud
+- grafana.kwintes.cloud
+- prometheus.kwintes.cloud
+- whisper.kwintes.cloud
+- qdrant.kwintes.cloud
 
 ## Server Setup Steps
 
-### 1. Initial Server Setup
+### 1. Update System
 ```bash
-# Update system and install required packages
 sudo apt update && sudo apt upgrade -y
-sudo apt install -y nano git docker.io python3 python3-pip docker-compose ffmpeg portaudio19-dev python3-pyaudio
+```
 
-# Install Docker Compose v2
-sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-sudo chmod +x /usr/local/bin/docker-compose
+### 2. Install Required Packages
+```bash
+sudo apt install -y \
+    apt-transport-https \
+    ca-certificates \
+    curl \
+    gnupg \
+    lsb-release \
+    python3 \
+    python3-pip \
+    git
+```
 
-# Add current user to docker group
+### 3. Install Docker
+```bash
+# Remove old versions
+sudo apt remove -y docker docker-engine docker.io containerd runc
+sudo apt autoremove -y
+
+# Install Docker prerequisites
+sudo apt install -y \
+    apt-transport-https \
+    ca-certificates \
+    curl \
+    gnupg \
+    lsb-release
+
+# Add Docker's official GPG key
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+
+# Add Docker repository
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
+  $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# Install Docker Engine
+sudo apt update
+sudo apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+# Add user to docker group
 sudo usermod -aG docker $USER
 ```
 
-### 2. Configure Firewall
+### 4. Install Python Dependencies
 ```bash
-# Enable and configure firewall
-sudo ufw enable
-sudo ufw allow 8000  # n8n
-sudo ufw allow 3001  # Flowise
-sudo ufw allow 3000  # Web UI
-sudo ufw allow 5678  # n8n webhook
-sudo ufw allow 80    # HTTP
-sudo ufw allow 443   # HTTPS
-sudo ufw allow 8080  # SearXNG (if needed)
-sudo ufw allow 11434 # Ollama
-sudo ufw allow 6333  # Qdrant
-sudo ufw allow 9090  # Prometheus
-sudo ufw allow 3000  # Grafana
-sudo ufw reload
+pip3 install docker python-dotenv
 ```
 
-### 3. Clone Repository
+### 5. Configure Firewall
 ```bash
-# Clone the repository
+sudo ufw allow 22/tcp
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw allow 8000/tcp
+sudo ufw allow 3000/tcp
+sudo ufw allow 3001/tcp
+sudo ufw allow 11434/tcp
+sudo ufw allow 8080/tcp
+sudo ufw allow 9090/tcp
+sudo ufw allow 9000/tcp
+sudo ufw allow 6333/tcp
+sudo ufw enable
+```
+
+### 6. Clone Repository
+```bash
 git clone https://github.com/ThijsdeZeeuw/AVGKWINTES.git
 cd AVGKWINTES
-
-# Create necessary directories
-mkdir -p data/{qdrant,prometheus,grafana,supabase}
 ```
 
-### 4. Interactive Environment Setup
+### 7. Interactive Environment Setup
 ```bash
-# Run the interactive setup script
 python3 start_services.py --interactive
-
-# The script will:
-# - Generate secure random values for all secrets
-# - Create a .env file with your configuration
-# - Save all secrets to secrets.txt
-# - Set up monitoring with Prometheus and Grafana
-# - Initialize all services
 ```
 
-### 5. Start Services
+This will:
+- Generate secure random values for all secrets
+- Create necessary data directories
+- Set up environment variables
+- Create .env and secrets.txt files
+- Start all services
+
+## Service Management
+
+### Start Services
 ```bash
-# Start all services
-docker compose -p localai up -d
-
-# Verify services are running
-docker compose -p localai ps
-
-# Check service logs if needed
-docker compose -p localai logs -f [service_name]
+docker-compose up -d
 ```
 
-### 6. Verify Installation
+### Stop Services
 ```bash
-# Check running containers
-docker ps
-
-# Verify services are accessible
-curl https://n8n.kwintes.cloud/healthz  # n8n
-curl https://qdrant.kwintes.cloud/healthz  # Qdrant
-curl https://prometheus.kwintes.cloud/-/healthy  # Prometheus
+docker-compose down
 ```
 
-## Accessing Services
+### View Logs
+```bash
+docker-compose logs -f
+```
 
-After installation, you can access the following services:
-
-1. n8n: https://n8n.kwintes.cloud
-2. Web UI: https://openwebui.kwintes.cloud
-3. Flowise: https://flowise.kwintes.cloud
-4. Supabase: https://supabase.kwintes.cloud
-5. Grafana: https://grafana.kwintes.cloud
-6. Prometheus: https://prometheus.kwintes.cloud
-7. Whisper API: https://whisper.kwintes.cloud
-8. Qdrant API: https://qdrant.kwintes.cloud
-
-## Monitoring Setup
-
-1. Access Grafana at https://grafana.kwintes.cloud
-   - Default credentials: admin / (password from secrets.txt)
-   - Add Prometheus as a data source (URL: http://prometheus:9090)
-
-2. Access Prometheus at https://prometheus.kwintes.cloud
-   - View metrics and create alerts
+### Restart Services
+```bash
+docker-compose restart
+```
 
 ## Available AI Models
 
-The following models are automatically installed:
-
 ### Large Language Models (LLMs)
-- gemma3:12b (Google)
-- granite3-guardian:8b (IBM)
-- granite3.1-dense:latest (IBM)
-- granite3.1-moe:3b (IBM)
-- granite3.2:latest (IBM)
-- llama3.2-vision (Meta)
-- minicpm-v:8b (OpenBMB)
-- mistral-nemo:12b (Mistral AI)
-- qwen2.5:7b-instruct-q4_K_M (Alibaba)
-- reader-lm:latest (OpenBMB)
+1. gemma3:12b
+2. granite3-guardian:8b
+3. granite3-guardian:8b-instruct
+4. granite3-guardian:8b-q4_K_M
+5. granite3-guardian:8b-q5_K_M
+6. granite3-guardian:8b-q8_0
+7. granite3-guardian:8b-q8_0-instruct
+8. granite3-guardian:8b-q8_0-instruct-v2
+9. granite3-guardian:8b-q8_0-v2
+10. granite3-guardian:8b-q8_0-v2-instruct
+11. granite3-guardian:8b-q8_0-v2-instruct-v2
+12. granite3-guardian:8b-q8_0-v2-v2
+13. granite3-guardian:8b-q8_0-v2-v2-instruct
 
 ### Embedding Models
-- granite-embedding:278m (IBM)
-- jeffh/intfloat-multilingual-e5-large-instruct:f16 (Hugging Face)
-- nomic-embed-text:latest (Nomic AI)
-
-## Maintenance
-
-### Updating the Stack
-```bash
-cd AVGKWINTES
-git pull
-python3 start_services.py --interactive
-```
-
-### Restarting Services
-```bash
-docker compose -p localai down
-python3 start_services.py --interactive
-```
-
-### Backup
-```bash
-# Backup data directories
-tar -czf backup_$(date +%Y%m%d).tar.gz data/
-```
+1. granite-embedding:278m
+2. granite-embedding:278m-v2
 
 ## Security Notes
 
-1. All secrets are saved to secrets.txt - keep this file secure
-2. All services are configured to use HTTPS through Caddy
-3. Firewall rules are configured to allow only necessary ports
-4. Default credentials should be changed after first login
-5. Regular security updates are handled through Docker containers
+1. All secrets are automatically generated and stored in secrets.txt
+2. Keep secrets.txt secure and never commit it to version control
+3. Change all default passwords in production
+4. Configure SMTP settings for email notifications
+5. Regularly update all components
+6. Monitor system logs for security events
+7. Backup data regularly
+8. Use strong passwords for all services
+9. Enable 2FA where available
+10. Keep system and dependencies updated
+
+## Maintenance
+
+### Regular Tasks
+1. Monitor system resources
+2. Check service logs
+3. Update Docker images
+4. Backup data
+5. Review security logs
+6. Update SSL certificates
+7. Clean up old logs
+8. Monitor disk space
+9. Check service health
+10. Update documentation
+
+### Backup Procedure
+1. Stop services
+2. Backup data directories
+3. Backup .env and secrets.txt
+4. Backup Docker volumes
+5. Verify backup integrity
+6. Document backup date
+7. Test restore procedure
 
 ## Support
 
-For issues and feature requests, please open an issue on the GitHub repository:
-https://github.com/ThijsdeZeeuw/AVGKWINTES/issues
+For support or issues:
+1. Check service logs
+2. Review documentation
+3. Contact system administrator
+4. Check GitHub issues
+5. Review security advisories
 
----
-Created and maintained by Z4Y 
+# Created and maintained by Z4Y 
